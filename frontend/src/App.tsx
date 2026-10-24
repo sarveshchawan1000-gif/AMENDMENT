@@ -347,7 +347,7 @@ export const App: React.FC = () => {
     // 3. current_player hasn't changed (backend kept it the same)
     const amendmentAvailable =
       !winner &&
-      (state.config.mode === 'live' || state.config.mode === 'hybrid') &&
+      state.config.mode === 'live' &&
       backendState.moves_since_amend >= (backendState.settings.amend_every ?? 1) &&
       backendActivePlayerIndex === state.activePlayerIndex;
 
@@ -454,6 +454,12 @@ export const App: React.FC = () => {
     proposerId?: string,
   ) => {
     setShowProposalComposer(false);
+
+    // Hybrid mode: rules are fixed and cannot be changed or added
+    if (state.config.mode === 'hybrid') {
+      console.warn('[Hybrid Mode] Amendment blocked – rules are fixed at game start.');
+      return;
+    }
 
     const actualProposerId = proposerId ?? amendmentProposerId;
     const proposer = state.players.find(
@@ -599,11 +605,6 @@ export const App: React.FC = () => {
         activePlayerIndex: response.state.current_player,
         turnCount: response.state.turn,
       }));
-
-      // In Hybrid mode, immediately reload the authoritative Rules Book from backend
-      if (response.accepted && state.config.mode === 'hybrid' && backendGameId) {
-        void loadHybridRulesBook(backendGameId);
-      }
     } catch (error) {
       const message = error instanceof Error
         ? error.message
@@ -654,6 +655,12 @@ export const App: React.FC = () => {
     const proposerId = amendmentProposerId;
 
     setShowProposalComposer(false);
+
+    // Hybrid mode: no amendments exist to pass, do nothing
+    if (state.config.mode === 'hybrid') {
+      setAmendmentProposerId(null);
+      return;
+    }
 
     if (!backendGameId || !proposerId) {
       setAmendmentProposerId(null);

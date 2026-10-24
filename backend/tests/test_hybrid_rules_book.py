@@ -1,29 +1,25 @@
 """
-Tests for Hybrid Mode Rules Book persistence and data integrity.
+Tests for Hybrid Mode Rules Book persistence and fixed rules constraints.
 
 Verifies:
-1. An accepted Hybrid Mode rule is saved to the Rules Book.
-2. A rejected rule is not saved as active.
-3. Multiple accepted rules appear in their correct order.
+1. In Hybrid Mode, the rules are fixed from the starting curated rulebook.
+2. Players cannot change or add rules in Hybrid Mode (amendments rejected).
+3. The starting fixed rules are saved in the persistent Rules Book in correct order.
 4. Rules remain available after reopening / reloading the game.
 5. Rules belonging to one game do not appear in another game's Rules Book.
-6. Retrying the same amendment request does not create duplicate entries.
-7. Existing game modes (draft, live) continue to work properly.
-8. Clear errors are returned for invalid game IDs or unavailable games.
+6. Existing game modes continue to work properly.
+7. Clear errors are returned for invalid game IDs or non-hybrid modes.
 """
 
-import json
 import pytest
 from pathlib import Path
 from fastapi.testclient import TestClient
 
-from backend.app import app, games, set_rng_factory
+from backend.app import app, games
 from backend.rules_book import (
     get_rules_book_dir,
     init_hybrid_rules_book,
     load_rules_book,
-    save_rules_book,
-    add_rule_to_book,
 )
 
 
@@ -37,14 +33,12 @@ def client():
 def clean_rules_book_storage():
     """Clean up rules_books storage before and after tests."""
     storage_dir = get_rules_book_dir()
-    # Clean files before
     for f in storage_dir.glob("*.json"):
         try:
             f.unlink()
         except OSError:
             pass
     yield
-    # Clean files after
     for f in storage_dir.glob("*.json"):
         try:
             f.unlink()
@@ -87,8 +81,8 @@ def test_init_non_hybrid_mode_does_not_persist(tmp_path):
     assert load_rules_book(game_id, custom_dir=tmp_path) is None
 
 
-def test_accepted_hybrid_rule_saved_to_rules_book(client):
-    """Accepted Hybrid Mode rule must be saved to the persistent Rules Book."""
+def test_hybrid_mode_has_fixed_starting_rules_persisted(client):
+    """Hybrid Mode must store and persist the fixed starting rules from the rulebook."""
     req_data = {
         "settings": {
             "board_size": 6,
@@ -96,7 +90,6 @@ def test_accepted_hybrid_rule_saved_to_rules_book(client):
             "win_target": 25,
             "mode": "hybrid",
             "max_rules": 8,
-            "amend_every": 1,
         },
         "players": [
             {"id": "P1", "name": "Alice"},
@@ -108,40 +101,24 @@ def test_accepted_hybrid_rule_saved_to_rules_book(client):
     assert create_res.status_code in (200, 201), create_res.text
     game_id = create_res.json()["game_id"]
 
-    # Roll turn for P1
-    roll_res = client.post(f"/game/{game_id}/roll", json={"player_id": "P1"})
-    assert roll_res.status_code == 200
-
-    # Submit valid amendment
-    amend_res = client.post(
-        f"/game/{game_id}/amend",
-        json={"player_id": "P1", "text": "When you land, gain 2 points"}
-    )
-    assert amend_res.status_code == 200
-    amend_data = amend_res.json()
-    assert amend_data["accepted"] is True
-    added_rule_id = amend_data["rule"]["id"]
-
-    # Verify Rules Book endpoint returns the newly accepted rule
+    # Verify Rules Book endpoint returns the fixed starting rules
     book_res = client.get(f"/game/{game_id}/rules-book")
     assert book_res.status_code == 200
     book_data = book_res.json()
     assert book_data["game_id"] == game_id
     assert book_data["mode"] == "hybrid"
+    assert len(book_data["rules"]) > 0
 
-    active_rule_ids = [r["id"] for r in book_data["rules"] if r["status"] == "active"]
-    assert added_rule_id in active_rule_ids
-
-    # Find the specific rule entry
-    entry = next(r for r in book_data["rules"] if r["id"] == added_rule_id)
-    assert entry["proposer_id"] == "P1"
-    assert entry["proposer_name"] == "Alice"
-    assert "gain 2 points" in entry["original_text"]
-    assert entry["status"] == "active"
+    # Rules are active and ordered
+    for idx, rule in enumerate(book_data["rules"]):
+        assert rule["status"] == "active"
+        assert rule["order"] == idx + 1
+        assert rule["game_id"] == game_id
+        assert "compiled_rule" in rule
 
 
-def test_rejected_rule_is_not_saved_as_active(client):
-    """A rejected rule must not be saved as active in the Rules Book."""
+def test_hybrid_mode_disallows_amending_or_adding_rules(client):
+    """In Hybrid Mode, rules are fixed; players cannot add or change rules."""
     req_data = {
         "settings": {
             "board_size": 6,
@@ -149,7 +126,6 @@ def test_rejected_rule_is_not_saved_as_active(client):
             "win_target": 25,
             "mode": "hybrid",
             "max_rules": 8,
-            "amend_every": 1,
         },
         "players": [
             {"id": "P1", "name": "Alice"},
@@ -159,71 +135,27 @@ def test_rejected_rule_is_not_saved_as_active(client):
     create_res = client.post("/game/new", json=req_data)
     game_id = create_res.json()["game_id"]
 
-    # Initial rule count
-    initial_book_res = client.get(f"/game/{game_id}/rules-book")
-    initial_active_count = len([r for r in initial_book_res.json()["rules"] if r["status"] == "active"])
-
-    # Roll turn
+    # Roll a turn
     client.post(f"/game/{game_id}/roll", json={"player_id": "P1"})
 
-    # Submit invalid input (not a game rule)
-    reject_res = client.post(
+    # Attempt to amend in hybrid mode
+    amend_res = client.post(
         f"/game/{game_id}/amend",
-        json={"player_id": "P1", "text": "Hello what is your name?"}
+        json={"player_id": "P1", "text": "When you land, gain 5 points"}
     )
-    assert reject_res.status_code == 200
-    assert reject_res.json()["accepted"] is False
+    assert amend_res.status_code == 200
+    amend_data = amend_res.json()
+    assert amend_data["accepted"] is False
+    assert "not allowed in hybrid mode" in amend_data["error"]
 
-    # Check Rules Book: active count must not increase
-    book_res = client.get(f"/game/{game_id}/rules-book")
-    current_active_count = len([r for r in book_res.json()["rules"] if r["status"] == "active"])
-    assert current_active_count == initial_active_count
-
-
-def test_multiple_accepted_rules_appear_in_correct_order(client):
-    """Multiple accepted rules must appear in the exact order they were accepted."""
-    req_data = {
-        "settings": {
-            "board_size": 6,
-            "dice_type": "1d6",
-            "win_target": 50,
-            "mode": "hybrid",
-            "max_rules": 8,
-            "amend_every": 1,
-        },
-        "players": [
-            {"id": "P1", "name": "Alice"},
-            {"id": "P2", "name": "Bob"},
-        ],
-    }
-    create_res = client.post("/game/new", json=req_data)
-    game_id = create_res.json()["game_id"]
-
-    # Turn 1: P1 rolls and amends
-    client.post(f"/game/{game_id}/roll", json={"player_id": "P1"})
-    r1 = client.post(f"/game/{game_id}/amend", json={"player_id": "P1", "text": "When you land, gain 1 point"}).json()
-    assert r1["accepted"] is True
-    r1_id = r1["rule"]["id"]
-
-    # Turn 2: P2 rolls and amends
-    client.post(f"/game/{game_id}/roll", json={"player_id": "P2"})
-    r2 = client.post(f"/game/{game_id}/amend", json={"player_id": "P2", "text": "When you roll an even number, gain 2 points"}).json()
-    assert r2["accepted"] is True
-    r2_id = r2["rule"]["id"]
-
-    # Fetch Rules Book
+    # Check Rules Book: rule count must remain completely unchanged
     book_res = client.get(f"/game/{game_id}/rules-book")
     rules = book_res.json()["rules"]
-
-    # Check order
-    rule_ids = [r["id"] for r in rules]
-    assert r1_id in rule_ids
-    assert r2_id in rule_ids
-    assert rule_ids.index(r1_id) < rule_ids.index(r2_id)
+    assert not any("gain 5 points" in r.get("original_text", "") for r in rules)
 
 
-def test_rules_remain_available_after_reopening_game(client):
-    """Rules must remain accessible from disk persistence even if in-memory cache is wiped."""
+def test_hybrid_fixed_rules_remain_available_after_reopening_game(client):
+    """Fixed rules must remain accessible from disk persistence even after server restart."""
     req_data = {
         "settings": {
             "board_size": 6,
@@ -231,7 +163,6 @@ def test_rules_remain_available_after_reopening_game(client):
             "win_target": 25,
             "mode": "hybrid",
             "max_rules": 8,
-            "amend_every": 1,
         },
         "players": [
             {"id": "P1", "name": "Alice"},
@@ -241,91 +172,46 @@ def test_rules_remain_available_after_reopening_game(client):
     create_res = client.post("/game/new", json=req_data)
     game_id = create_res.json()["game_id"]
 
-    client.post(f"/game/{game_id}/roll", json={"player_id": "P1"})
-    amend_res = client.post(f"/game/{game_id}/amend", json={"player_id": "P1", "text": "When you land, gain 3 points"})
-    assert amend_res.json()["accepted"] is True
-    added_id = amend_res.json()["rule"]["id"]
+    book_before = client.get(f"/game/{game_id}/rules-book").json()["rules"]
+    assert len(book_before) > 0
 
-    # Simulate server memory wipe (server restart / new process)
+    # Wipe in-memory dictionary to simulate server restart
     if game_id in games:
         del games[game_id]
 
-    # Reopening game / fetching rules-book should read from persistent disk storage!
-    book_res = client.get(f"/game/{game_id}/rules-book")
-    assert book_res.status_code == 200
-    rules = book_res.json()["rules"]
-    assert any(r["id"] == added_id for r in rules)
+    # Reopening game / fetching rules-book reads directly from persistent disk
+    book_after = client.get(f"/game/{game_id}/rules-book").json()["rules"]
+    assert len(book_after) == len(book_before)
+    assert [r["id"] for r in book_after] == [r["id"] for r in book_before]
 
 
 def test_game_isolation_rules_do_not_bleed_between_games(client):
     """Rules belonging to one game must never appear in another game's Rules Book."""
     req1 = {
-        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 25, "mode": "hybrid", "max_rules": 8, "amend_every": 1},
+        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 25, "mode": "hybrid", "max_rules": 8},
         "players": [{"id": "P1", "name": "Alice"}, {"id": "P2", "name": "Bob"}],
     }
     req2 = {
-        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 25, "mode": "hybrid", "max_rules": 8, "amend_every": 1},
+        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 25, "mode": "hybrid", "max_rules": 8},
         "players": [{"id": "P1", "name": "Charlie"}, {"id": "P2", "name": "Dave"}],
     }
 
     g1_id = client.post("/game/new", json=req1).json()["game_id"]
     g2_id = client.post("/game/new", json=req2).json()["game_id"]
 
-    # Game 1 adds custom rule
-    client.post(f"/game/{g1_id}/roll", json={"player_id": "P1"})
-    r1 = client.post(f"/game/{g1_id}/amend", json={"player_id": "P1", "text": "When you land, gain 3 points"}).json()
-    assert r1["accepted"] is True
-    r1_id = r1["rule"]["id"]
-
-    # Game 2 Rules Book must NOT contain Game 1's custom rule
+    g1_book = client.get(f"/game/{g1_id}/rules-book").json()["rules"]
     g2_book = client.get(f"/game/{g2_id}/rules-book").json()["rules"]
-    assert not any(r["id"] == r1_id and r["proposer_name"] == "Alice" for r in g2_book)
 
-
-def test_retrying_same_amendment_request_does_not_create_duplicates(client):
-    """Retrying the exact same amendment request should be idempotent and not create duplicate entries."""
-    req_data = {
-        "settings": {
-            "board_size": 6,
-            "dice_type": "1d6",
-            "win_target": 25,
-            "mode": "hybrid",
-            "max_rules": 8,
-            "amend_every": 1,
-        },
-        "players": [
-            {"id": "P1", "name": "Alice"},
-            {"id": "P2", "name": "Bob"},
-        ],
-    }
-    create_res = client.post("/game/new", json=req_data)
-    game_id = create_res.json()["game_id"]
-
-    client.post(f"/game/{game_id}/roll", json={"player_id": "P1"})
-
-    # Send amendment
-    amend1 = client.post(f"/game/{game_id}/amend", json={"player_id": "P1", "text": "When you land, gain 2 points"})
-    assert amend1.json()["accepted"] is True
-
-    # Immediate retry of identical amendment request
-    amend2 = client.post(f"/game/{game_id}/amend", json={"player_id": "P1", "text": "When you land, gain 2 points"})
-    assert amend2.json()["accepted"] is True
-
-    # Verify no duplicates in Rules Book
-    book_res = client.get(f"/game/{game_id}/rules-book")
-    rules = book_res.json()["rules"]
-    matching_entries = [r for r in rules if r.get("original_text") == "When you land, gain 2 points"]
-    assert len(matching_entries) == 1
+    assert all(r["game_id"] == g1_id for r in g1_book)
+    assert all(r["game_id"] == g2_id for r in g2_book)
 
 
 def test_rules_book_endpoint_errors_for_invalid_game_or_mode(client):
     """Rules Book endpoint returns 404 for nonexistent games and 400 for non-hybrid modes."""
-    # 404 for invalid game
     res_404 = client.get("/game/nonexistent-game-id/rules-book")
     assert res_404.status_code == 404
     assert "not found" in res_404.json()["detail"].lower()
 
-    # 400 for live mode game
     live_req = {
         "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 25, "mode": "live", "max_rules": 8, "amend_every": 1},
         "players": [{"id": "P1", "name": "Alice"}, {"id": "P2", "name": "Bob"}],

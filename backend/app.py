@@ -461,8 +461,8 @@ async def execute_player_turn(game_id: str, request: ExecuteTurnRequest):
 
 
 def _consume_live_amendment_opportunity(state: dict) -> None:
-    """Close the current live/hybrid-mode amendment opportunity."""
-    if state["settings"]["mode"] in ("live", "hybrid"):
+    """Close the current live-mode amendment opportunity."""
+    if state["settings"]["mode"] == "live":
         state["moves_since_amend"] = 0
 
 
@@ -499,23 +499,14 @@ async def submit_amendment(game_id: str, request: AmendRequest):
             detail=f"Player {request.player_id} not found in this game"
         )
 
-    # Idempotent retry check for hybrid mode:
-    # If the exact same request was already accepted and added to the Rules Book, return it without duplicating
+    # Hybrid mode rules are strictly fixed from the starting rulebook
     if state["settings"]["mode"] == "hybrid":
-        existing_book = load_rules_book(game_id) or []
-        for existing in existing_book:
-            if (
-                existing.get("proposer_id") == request.player_id
-                and existing.get("original_text", "").strip().lower() == request.text.strip().lower()
-                and existing.get("status") == "active"
-            ):
-                return AmendResponse(
-                    accepted=True,
-                    category="accepted",
-                    rule=existing.get("compiled_rule"),
-                    error=None,
-                    state=state,
-                )
+        return AmendResponse(
+            accepted=False,
+            rule=None,
+            error="Amendments not allowed in hybrid mode. Rules are fixed.",
+            state=state,
+        )
 
     # Check whether an amendment opportunity currently exists.
     allowed, reason = can_amend(state)
@@ -528,7 +519,7 @@ async def submit_amendment(game_id: str, request: AmendRequest):
         )
 
     # Only the player who completed the qualifying turn may amend.
-    if state["settings"]["mode"] in ("live", "hybrid"):
+    if state["settings"]["mode"] == "live":
         if request.player_id != state.get("last_actor_id"):
             return AmendResponse(
                 accepted=False,
@@ -638,8 +629,8 @@ async def pass_amendment(game_id: str, request: ExecuteTurnRequest):
             detail=f"Player {request.player_id} not found in this game",
         )
 
-    if state["settings"]["mode"] not in ("live", "hybrid"):
-        return {"accepted": False, "error": "Passing is only supported in live or hybrid mode.", "state": state}
+    if state["settings"]["mode"] != "live":
+        return {"accepted": False, "error": "Passing is only supported in live mode.", "state": state}
 
     if request.player_id != state.get("last_actor_id"):
         return {"accepted": False, "error": "Only the player who completed the qualifying turn may pass.", "state": state}
