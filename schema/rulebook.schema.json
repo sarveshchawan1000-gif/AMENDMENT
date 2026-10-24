@@ -1,0 +1,234 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AMENDMENT Rulebook",
+  "description": "A collection of rules for the AMENDMENT board game engine. Rules in a rulebook file do not include id or immutable - the engine assigns those on load.",
+  "type": "object",
+  "required": [
+    "name",
+    "rules"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Display name of the rulebook"
+    },
+    "board_sizes": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "enum": [
+          6,
+          8,
+          10
+        ]
+      },
+      "description": "Compatible board sizes (grid dimension). Empty array or absent means all sizes."
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/rule"
+      }
+    }
+  },
+  "definitions": {
+    "rule": {
+      "type": "object",
+      "required": [
+        "trigger",
+        "condition",
+        "effect"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Assigned by the engine. Optional in rulebook files."
+        },
+        "trigger": {
+          "type": "string",
+          "enum": [
+            "on_turn_start",
+            "on_roll",
+            "on_land",
+            "win_check"
+          ]
+        },
+        "condition": {
+          "$ref": "#/definitions/condition"
+        },
+        "effect": {
+          "$ref": "#/definitions/effect"
+        },
+        "immutable": {
+          "type": "boolean",
+          "description": "Overridden to false by the engine on load."
+        },
+        "source": {
+          "type": "string",
+          "description": "Original English text or description."
+        }
+      }
+    },
+    "condition": {
+      "type": "object",
+      "required": [
+        "mode",
+        "predicates"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "all",
+            "any"
+          ]
+        },
+        "predicates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/predicate"
+          },
+          "description": "Empty array means always true."
+        }
+      }
+    },
+    "predicate": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "enum": [
+            "is_leader",
+            "is_last",
+            "roll_is_even",
+            "tile_is_prime",
+            "score_gt"
+          ]
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "integer"
+            }
+          },
+          "description": "Required for score_gt."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "score_gt"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "then": {
+            "required": [
+              "args"
+            ],
+            "properties": {
+              "args": {
+                "required": [
+                  "value"
+                ],
+                "properties": {
+                  "value": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "effect": {
+      "type": "object",
+      "required": [
+        "type",
+        "amount",
+        "target"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "add_score",
+            "steal_score",
+            "move",
+            "skip_turn",
+            "reroll",
+            "set_win_target"
+          ]
+        },
+        "amount": {
+          "type": "integer",
+          "description": "+/-5 for all effects except set_win_target (5..30). 0 for skip_turn and reroll."
+        },
+        "target": {
+          "type": "string",
+          "enum": [
+            "self",
+            "leader",
+            "last",
+            "all_others"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "set_win_target"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "amount": {
+                "type": "integer",
+                "minimum": 5,
+                "maximum": 30
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "not": {
+                  "const": "set_win_target"
+                }
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "amount": {
+                "type": "integer",
+                "minimum": -5,
+                "maximum": 5
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

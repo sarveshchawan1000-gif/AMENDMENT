@@ -1,11 +1,14 @@
 # Core dependencies for AMENDMENT backend
 requests>=2.31.0
 
+# FastAPI backend
+fastapi>=0.104.0
+uvicorn>=0.24.0
+pydantic>=2.5.0
+
 # Testing
 pytest>=7.4.0
+httpx>=0.25.0  # For TestClient
 
 # Future dependencies (uncomment when needed)
-# fastapi>=0.104.0
-# uvicorn>=0.24.0
-# pydantic>=2.5.0
 # google-generativeai>=0.3.0  # For Gemini provider in production
