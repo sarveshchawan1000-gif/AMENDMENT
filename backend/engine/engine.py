@@ -97,6 +97,9 @@ def execute_turn(state: dict, rng) -> dict:
             state["phase"] = "finished"
             break
 
+    # Record the actor for the completed normal turn.
+    state["last_actor_id"] = acting_player["id"]
+
     # --- Step 7: finalization ---
     last_delta = acting_player["score"] - score_at_turn_start
     ranks = rank_players(players)

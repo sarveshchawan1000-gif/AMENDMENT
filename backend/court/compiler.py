@@ -42,7 +42,7 @@ Effect types:
 - move (amount ±5, target)
 - skip_turn (amount 0, target)
 - reroll (amount 0, target self)
-- set_win_target (amount 5-30, target ignored)
+- set_win_target (amount 5-50, target ignored)
 
 Targets: self, leader, last, all_others
 
@@ -55,17 +55,20 @@ Current rules: {rule_count} (max: {max_rules})
 
 # RULES
 
-1. Output ONLY valid JSON matching the schema
-2. Never invent triggers, predicates, or effects outside the enums
-3. Clamp amounts: ±5 for most effects, 5-30 for set_win_target
-4. score_gt MUST have args.value
-5. Reject rules naming specific players (like "when Alice lands")
-6. Reject meta-rules ("all rules are void", "I win")
-7. Reject rules referencing tiles > {total_tiles}
-8. Keep ruling to one short sentence with a dry tone
-
-# OUTPUT FORMAT
-
+1. Output ONLY valid JSON.
+2. Never invent triggers, predicates, or effects outside the allowed enums.
+3. Never clamp or silently change a requested effect amount. Preserve the original amount so validation can reject values outside allowed limits.
+4. First determine whether the input describes a change to gameplay.
+5. If the input does not describe a gameplay rule, output exactly:
+{{"not_a_game_rule": true, "reason": "This is not a game rule. Please propose a rule that changes the gameplay."}}
+6. Examples of inputs that are NOT game rules: "fuck you", "suck my dick", "hello", "what is your name?"
+7. If the input describes a gameplay rule, output the normal rule JSON specified by the schema.
+8. Do not classify a gameplay rule as a non-game-rule merely because it violates a game constraint.
+9. Invalid amounts, unsupported effects, and other rule violations must be rejected by validation with a specific reason.
+10. Reject rules naming specific players.
+11. Reject meta-rules that void other rules or bypass the game's logic.
+12. Reject rules referencing tiles beyond {total_tiles}.
+13. Keep responses concise and follow the required JSON format.
 Output exactly this JSON structure:
 
 {{
@@ -176,6 +179,77 @@ def parse_json_safely(text: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+
+def _requested_effect_amount(text: str) -> tuple[int, str] | None:
+    """Extract an explicitly requested effect amount without reading condition numbers."""
+    patterns = [
+        (
+            r"\b(?:set|change|make)\s+(?:the\s+)?win(?:ning)?\s+target"
+            r"\s+(?:to|at|of)\s+(-?\d+)\b",
+            "win_target",
+        ),
+        (
+            r"\b(?:give|award|add|gain|earn|steal|take)"
+            r"(?:\s+\w+){0,4}?\s+(-?\d+)\s+(?:points?|pts?)\b",
+            "effect",
+        ),
+        (
+            r"\b(?:move|advance)"
+            r"(?:\s+\w+){0,3}?\s+(-?\d+)\s+(?:spaces?|tiles?|steps?)\b",
+            "effect",
+        ),
+    ]
+
+    for pattern, kind in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return int(match.group(1)), kind
+
+    return None
+
+
+def _requested_amount_error(text: str, rule: dict) -> str | None:
+    """Reject capped amounts or an AI-generated amount that differs from the request."""
+    requested = _requested_effect_amount(text)
+    if requested is None:
+        return None
+
+    amount, kind = requested
+
+    if kind == "win_target":
+        if not 5 <= amount <= 50:
+            return f"set_win_target {amount} outside 5..50"
+        expected_type = "set_win_target"
+    else:
+        if abs(amount) > 5:
+            return f"Effect amount {amount} exceeds ±5 cap"
+
+        effect = rule.get("effect")
+        if not isinstance(effect, dict):
+            return None
+        expected_type = effect.get("type")
+
+    effect = rule.get("effect")
+    if not isinstance(effect, dict):
+        return None
+
+    if effect.get("type") != expected_type:
+        return (
+            f"Requested effect amount {amount}, but the generated rule "
+            f"uses effect type {effect.get('type')!r}"
+        )
+
+    generated_amount = effect.get("amount")
+    if isinstance(generated_amount, int) and not isinstance(generated_amount, bool):
+        if generated_amount != amount:
+            return (
+                f"Court changed the requested effect amount "
+                f"(requested {amount}, generated {generated_amount})"
+            )
+
+    return None
+
+
 def compile_amendment(
     text: str,
     state: Dict[str, Any],
@@ -236,32 +310,52 @@ def compile_amendment(
             
             # Parse JSON
             rule = parse_json_safely(json_str)
-            if not rule:
+            if rule is None:
                 last_error = "Invalid JSON format"
                 continue
-            
-            # Validate required fields exist
+
+            # Validate response type
             if not isinstance(rule, dict):
                 last_error = "Response is not a JSON object"
                 continue
-            
+
+            # Check whether the input is a game rule at all
+            if rule.get("not_a_game_rule") is True:
+                return {
+                    "accepted": False,
+                    "category": "not_a_game_rule",
+                    "rule": None,
+                    "error": "This is not a game rule. Please propose a rule that changes the gameplay."
+                }
+
+            # Ensure the generated rule preserves an explicitly requested effect amount.
+            amount_error = _requested_amount_error(text, rule)
+            if amount_error:
+                return {
+                    "accepted": False,
+                    "category": "invalid_rule",
+                    "rule": None,
+                    "error": f"Invalid rule: {amount_error}"
+                }
+
             # Add source if missing
             if "source" not in rule:
                 rule["source"] = text
-            
             # Validate the rule structure using engine validator if provided
             if validate_rule_fn:
                 valid, error_msg = validate_rule_fn(rule)
                 if not valid:
                     return {
                         "accepted": False,
+                        "category": "invalid_rule",
                         "rule": None,
-                        "error": error_msg
+                        "error": f"Invalid rule: {error_msg}"
                     }
             
             # Success!
             return {
                 "accepted": True,
+                "category": "accepted",
                 "rule": rule,
                 "error": None
             }

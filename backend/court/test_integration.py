@@ -227,8 +227,8 @@ def test_integration_set_win_target_valid(mock_get_provider, mock_state):
 
 
 @patch('backend.court.compiler.get_provider')
-def test_integration_set_win_target_out_of_range(mock_get_provider, mock_state):
-    """set_win_target outside 5-30 should be rejected."""
+def test_integration_set_win_target_at_new_maximum(mock_get_provider, mock_state):
+    """set_win_target of 50 should be accepted."""
     mock_provider = Mock()
     mock_provider.is_available.return_value = True
     mock_provider.generate.return_value = '''{
@@ -244,9 +244,8 @@ def test_integration_set_win_target_out_of_range(mock_get_provider, mock_state):
         validate_rule
     )
     
-    assert result["accepted"] is False
-    assert "set_win_target" in result["error"]
-    assert "30" in result["error"]
+    assert result["accepted"] is True
+    assert result["rule"]["effect"]["amount"] == 50
 
 
 @patch('backend.court.compiler.get_provider')

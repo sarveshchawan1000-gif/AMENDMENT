@@ -58,12 +58,12 @@ class TestValidateRule:
         assert not ok and "5" in err
 
     def test_set_win_target_above_max(self):
-        rule = make_rule("win_check", "set_win_target", 35, "self")
+        rule = make_rule("win_check", "set_win_target", 55, "self")
         ok, err = validate_rule(rule)
-        assert not ok and "30" in err
+        assert not ok and "50" in err
 
     def test_set_win_target_at_boundary(self):
-        for v in [5, 30]:
+        for v in [5, 50]:
             rule = make_rule("win_check", "set_win_target", v, "self")
             ok, _ = validate_rule(rule)
             assert ok
@@ -116,8 +116,8 @@ class TestClamps:
         assert clamp_win_target(0) == 5
 
     def test_clamp_win_target_high(self):
-        assert clamp_win_target(35) == 30
-        assert clamp_win_target(100) == 30
+        assert clamp_win_target(55) == 50
+        assert clamp_win_target(100) == 50
 
 
 class TestCheckMaxRules:

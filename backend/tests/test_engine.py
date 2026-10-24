@@ -243,9 +243,9 @@ class TestSetWinTarget:
 
     def test_set_win_target_clamp_high(self):
         s = make_game_with()
-        add_raw(s, make_rule("win_check", "set_win_target", 35, "self"))
+        add_raw(s, make_rule("win_check", "set_win_target", 55, "self"))
         run(s, [3])
-        assert s["settings"]["win_target"] == 30
+        assert s["settings"]["win_target"] == 50
 
 
 # === MAX_RULES ===============================================================
