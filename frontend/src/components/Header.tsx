@@ -96,21 +96,23 @@ export const Header: React.FC<HeaderProps> = ({
             >
               AMENDMENT
             </h1>
-            <span
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '0.68rem',
-                padding: '2px 8px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--surface-2)',
-                color: 'var(--accent-2)',
-                border: '1px solid var(--accent-2)',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-              }}
-            >
-              {state.config.mode} Mode
-            </span>
+            {state.phase !== 'setup' && (
+              <span
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '0.68rem',
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--surface-2)',
+                  color: 'var(--accent-2)',
+                  border: '1px solid var(--accent-2)',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                }}
+              >
+                {state.config.mode} Mode
+              </span>
+            )}
           </div>
           <p
             style={{
