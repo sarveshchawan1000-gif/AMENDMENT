@@ -1,20 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { EVALUATION_TEST_SUITE } from '../data/evalDataset';
-import { submitProposalForAdmission } from '../services/admissionService';
-import { GameConfig, Player } from '../types/game';
+import { CompiledRule, GameConfig } from '../types/game';
 import { useTheme } from '../theme/ThemeProvider';
-import { TestTube, CheckCircle2, XCircle, Play, X, Scroll } from 'lucide-react';
+import { Scroll } from 'lucide-react';
 
 interface EvaluationModalProps {
   config: GameConfig;
+  rules?: CompiledRule[];
+  phase?: string;
+  turnCount?: number;
   onClose: () => void;
-}
-interface TestRunResult {
-  testId: string;
-  actualStatus: 'accepted' | 'rejected';
-  passed: boolean;
-  actualReason: string;
-  durationMs: number;
 }
 
 /* ─── Inject keyframes once ─── */
@@ -113,11 +108,8 @@ const AsianScrollKnob: React.FC<{ flip?: boolean }> = ({ flip }) => (
         <stop offset="100%" stopColor="#120401" />
       </linearGradient>
     </defs>
-    {/* Rounded end cap */}
     <ellipse cx="9" cy="13" rx="7" ry="10" fill="url(#asianKnobWood)" />
-    {/* Narrow ring collar */}
     <rect x="14" y="5" width="3.5" height="16" rx="1" fill="#120401" />
-    {/* Cylinder base connecting into roller */}
     <rect x="17.5" y="4" width="10" height="18" rx="1.5" fill="url(#asianKnobWood)" />
     <rect x="27.5" y="6" width="6.5" height="14" fill="#0c0200" />
   </svg>
@@ -138,7 +130,6 @@ const PlumBlossomBranch: React.FC = () => (
       zIndex: 1,
     }}
   >
-    {/* Main Branches */}
     <path
       d="M -5,-5 Q 35,22 70,18 T 130,32 Q 158,44 188,38"
       fill="none" stroke="#251a14" strokeWidth="3.2" strokeLinecap="round"
@@ -159,12 +150,10 @@ const PlumBlossomBranch: React.FC = () => (
       d="M 122,30 Q 136,50 150,58"
       fill="none" stroke="#251a14" strokeWidth="1.4" strokeLinecap="round"
     />
-    {/* Twigs */}
     <path d="M 22,10 Q 32,2 40,4" fill="none" stroke="#251a14" strokeWidth="1.3" />
     <path d="M 85,18 Q 92,6 98,8" fill="none" stroke="#251a14" strokeWidth="1.1" />
     <path d="M 166,40 Q 174,52 178,60" fill="none" stroke="#251a14" strokeWidth="1.2" />
 
-    {/* Blossoms & Buds */}
     {[
       { cx: 34,  cy: 14, r: 6 },
       { cx: 56,  cy: 18, r: 7.5 },
@@ -183,7 +172,6 @@ const PlumBlossomBranch: React.FC = () => (
       { cx: 142, cy: 14, r: 6 },
       { cx: 172, cy: 15, r: 6.5 },
       { cx: 198, cy: 20, r: 5.5 },
-      // Buds
       { cx: 20,  cy: 6,  r: 3.5 },
       { cx: 42,  cy: 5,  r: 4 },
       { cx: 108, cy: 9,  r: 3.5 },
@@ -233,24 +221,15 @@ const WesternScrollFinial: React.FC<{ flip?: boolean }> = ({ flip }) => (
         <stop offset="100%" stopColor="#0d0200" />
       </linearGradient>
     </defs>
-    {/* Pointed spearhead tip */}
     <path d="M 2,22 C 6,20 12,18 16,16 L 16,28 C 12,26 6,24 2,22 Z" fill="url(#westFinialWood)" />
-    {/* Narrow collar ring 1 */}
     <rect x="15.5" y="15" width="2.5" height="14" rx="1" fill="url(#westFinialDark)" />
-    {/* Small turned bead */}
     <ellipse cx="21" cy="22" rx="3.5" ry="5.5" fill="url(#westFinialWood)" />
-    {/* Narrow collar ring 2 */}
     <rect x="24" y="14" width="2.5" height="16" rx="1" fill="url(#westFinialDark)" />
-    {/* Main turned bulb / sphere */}
     <ellipse cx="32" cy="22" rx="6" ry="9" fill="url(#westFinialWood)" />
-    {/* Ring after bulb */}
     <rect x="37.5" y="11" width="3" height="22" rx="1" fill="url(#westFinialDark)" />
-    {/* Bell / flare cup */}
     <path d="M 40,12 C 43,11 48,9 52,7 L 52,37 C 48,35 43,33 40,32 Z" fill="url(#westFinialWood)" />
-    {/* Tiered base ring */}
     <rect x="51.5" y="5" width="4" height="34" rx="1.5" fill="url(#westFinialDark)" />
     <rect x="55" y="3" width="7" height="38" rx="2" fill="url(#westFinialWood)" />
-    {/* Socket sleeve entering roll */}
     <rect x="61.5" y="8" width="10.5" height="28" fill="url(#westFinialDark)" />
   </svg>
 );
@@ -285,19 +264,17 @@ const TORN_EDGE_CLIP = `polygon(
   0.5% 23%, 2.0% 17%, 0.7% 11%, 1.6% 5%, 0% 0%
 )`;
 
-export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClose }) => {
+export const EvaluationModal: React.FC<EvaluationModalProps> = ({ onClose }) => {
   ensureKF();
   const { theme } = useTheme();
   const isKingdom   = theme.id === 'kingdom';
   const isBrushwork = theme.id === 'brushwork';
 
-  const [isRunning, setIsRunning] = useState(false);
-  const [results,   setResults]   = useState<Record<string, TestRunResult>>({});
-  const [catFilter, setCatFilter] = useState<string>('all');
-  const [closing,   setClosing]   = useState(false);
+  /* Filter: ONLY ALL, ACCEPTED, REJECTED as requested */
+  const [statusFilter, setStatusFilter] = useState<'all' | 'accepted' | 'rejected'>('all');
+  const [closing, setClosing] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /* Slow and smooth duration matching the user request */
   const CLOSE_MS = 750;
   const handleClose = () => {
     setClosing(true);
@@ -305,37 +282,20 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
   };
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
-  const mockPlayer: Player = {
-    id:'eval-p', name:'Evaluator', color:'var(--p2)',
-    score:8, position:10, isGemma:false, avatar:'⚖️', totalAmendmentsPassed:0,
-  };
+  const totalCount    = EVALUATION_TEST_SUITE.length;
+  const acceptedCount = EVALUATION_TEST_SUITE.filter(tc => tc.expectedStatus === 'accepted').length;
+  const rejectedCount = EVALUATION_TEST_SUITE.filter(tc => tc.expectedStatus === 'rejected').length;
 
-  const runAllTests = async () => {
-    setIsRunning(true);
-    const acc: Record<string, TestRunResult> = {};
-    for (const tc of EVALUATION_TEST_SUITE) {
-      const t0 = performance.now();
-      const r  = await submitProposalForAdmission(tc.input, {
-        proposer: mockPlayer, currentTurn: 5,
-        config: { ...config, simulatedAiLatency: false, simulateOfflineModel: false },
-        activeRules: [],
-      });
-      acc[tc.id] = {
-        testId: tc.id,
-        actualStatus: r.status,
-        passed: r.status === tc.expectedStatus,
-        actualReason: r.reason,
-        durationMs: Math.round(performance.now() - t0),
-      };
-      setResults({ ...acc });
-    }
-    setIsRunning(false);
-  };
+  const FILTER_TABS: { id: 'all' | 'accepted' | 'rejected'; label: string; count: number }[] = [
+    { id: 'all',      label: `ALL (${totalCount})`,         count: totalCount },
+    { id: 'accepted', label: `ACCEPTED (${acceptedCount})`, count: acceptedCount },
+    { id: 'rejected', label: `REJECTED (${rejectedCount})`, count: rejectedCount },
+  ];
 
-  const execN    = Object.keys(results).length;
-  const passN    = Object.values(results).filter(r => r.passed).length;
-  const passRt   = execN > 0 ? Math.round((passN / execN) * 100) : 0;
-  const filtered = EVALUATION_TEST_SUITE.filter(tc => catFilter === 'all' || tc.category === catFilter);
+  const filtered = EVALUATION_TEST_SUITE.filter(tc => {
+    if (statusFilter === 'all') return true;
+    return tc.expectedStatus === statusFilter;
+  });
 
   const scrollBodyAnim = closing
     ? `scrollFurl ${CLOSE_MS}ms cubic-bezier(0.4, 0, 0.2, 1) forwards`
@@ -463,63 +423,34 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
                   }}>✕</button>
                 </div>
 
-                {/* ── METRIC STAMPS ── */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(145px,1fr))', gap: 10, marginBottom: 16, position: 'relative', zIndex: 2 }}>
-                  {[
-                    { label: 'Pass Rate',         val: `${passRt}% (${passN}/${execN || 25})`, ok: passRt === 100 },
-                    { label: 'Schema-Valid Rate', val: '100% (25/25)', ok: true },
-                    { label: 'Unsafe Executions', val: '0 (Target Met)', ok: true },
-                  ].map(c => (
-                    <div key={c.label} style={{
-                      padding: '10px 14px', borderRadius: 2,
-                      background: 'rgba(60,40,25,0.04)',
-                      border: '1px solid rgba(40,30,20,0.3)',
-                    }}>
-                      <div style={{ fontSize: '.64rem', textTransform: 'uppercase', fontFamily: 'var(--font-display)', color: '#685648', fontWeight: 800, letterSpacing: '.06em', marginBottom: 2 }}>{c.label}</div>
-                      <div style={{ fontFamily: 'monospace', fontSize: '1.08rem', fontWeight: 800, color: c.ok ? '#2e624d' : '#bd3124' }}>{c.val}</div>
-                    </div>
-                  ))}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <button type="button" onClick={runAllTests} disabled={isRunning} style={{
-                      width: '100%', height: '100%', minHeight: 46,
-                      padding: '10px 16px',
-                      background: isRunning ? '#8a7260' : '#bd3124',
-                      color: '#fffbf5',
-                      border: '1px solid rgba(60,15,10,0.7)',
-                      borderRadius: 2,
-                      fontFamily: 'var(--font-display)', fontWeight: 800,
-                      fontSize: '.78rem', letterSpacing: '.08em',
-                      cursor: isRunning ? 'wait' : 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      boxShadow: '0 3px 10px rgba(180,35,25,0.35)',
-                      transition: 'all .18s ease',
-                    }}>
-                      <Play size={13} fill="currentColor" />
-                      {isRunning ? 'Reviewing…' : 'Inscribe & Examine'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* ── FILTER TABS ── */}
-                <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', position: 'relative', zIndex: 2 }}>
-                  {[
-                    { id: 'all',                       l: 'All Ordinances (25)' },
-                    { id: 'valid_self_benefit',         l: 'Self-Benefit' },
-                    { id: 'boundary',                   l: 'Boundary' },
-                    { id: 'invalid_unsupported_action', l: 'Unsupported' },
-                    { id: 'ambiguous',                  l: 'Ambiguous' },
-                    { id: 'adversarial',                l: 'Adversarial' },
-                  ].map(c => (
-                    <button key={c.id} type="button" onClick={() => setCatFilter(c.id)} style={{
-                      padding: '4px 10px', borderRadius: 2,
-                      border: catFilter === c.id ? '1px solid #bd3124' : '1px solid rgba(40,30,20,0.25)',
-                      background: catFilter === c.id ? '#bd3124' : 'transparent',
-                      color: catFilter === c.id ? '#fffbf5' : '#4a3b30',
-                      fontSize: '.68rem', fontWeight: 800,
-                      fontFamily: 'var(--font-display)', cursor: 'pointer', letterSpacing: '.05em',
-                      boxShadow: catFilter === c.id ? '0 2px 6px rgba(180,35,25,0.3)' : 'none',
-                    }}>{c.l}</button>
-                  ))}
+                {/* ── FILTER TABS (Only ALL, ACCEPTED, REJECTED) ── */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 14, position: 'relative', zIndex: 2 }}>
+                  {FILTER_TABS.map(tab => {
+                    const isActive = statusFilter === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setStatusFilter(tab.id)}
+                        style={{
+                          padding: '6px 16px',
+                          borderRadius: 2,
+                          border: isActive ? '1px solid #bd3124' : '1px solid rgba(40,30,20,0.28)',
+                          background: isActive ? 'linear-gradient(to bottom, #bd3124, #9a2015)' : 'rgba(40,30,20,0.05)',
+                          color: isActive ? '#fffbf5' : '#3d3026',
+                          fontSize: '.74rem',
+                          fontWeight: 800,
+                          fontFamily: 'var(--font-display)',
+                          cursor: 'pointer',
+                          letterSpacing: '.06em',
+                          boxShadow: isActive ? '0 2px 8px rgba(189,49,36,0.35)' : 'none',
+                          transition: 'all .15s ease',
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* ── SUMI-E INK TABLE ── */}
@@ -532,7 +463,7 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.76rem' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid rgba(40,30,20,0.25)', textAlign: 'left' }}>
-                        {['Ordinance #', 'Prompt Text', 'Expected', 'Verdict', 'Judicial Grounds'].map(h => (
+                        {['Ordinance #', 'Prompt Text', 'Status', 'Judicial Grounds'].map(h => (
                           <th key={h} style={{
                             padding: '8px 10px', fontFamily: 'var(--font-display)',
                             color: '#28211b', fontWeight: 800, fontSize: '.69rem',
@@ -543,38 +474,24 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
                     </thead>
                     <tbody>
                       {filtered.map(tc => {
-                        const res = results[tc.id];
+                        const isAcc = tc.expectedStatus === 'accepted';
                         return (
                           <tr key={tc.id} style={{ borderBottom: '1px dashed rgba(40,30,20,0.18)' }}>
-                            <td style={{ padding: '7px 10px', fontFamily: 'monospace', fontWeight: 800, color: '#1a1410' }}>{tc.id}</td>
-                            <td style={{ padding: '7px 10px', fontStyle: 'italic', color: '#2b211a', fontFamily: 'var(--font-body)', fontSize: '.82rem' }}>&ldquo;{tc.input}&rdquo;</td>
-                            <td style={{ padding: '7px 10px' }}>
+                            <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontWeight: 800, color: '#1a1410' }}>{tc.id}</td>
+                            <td style={{ padding: '8px 10px', fontStyle: 'italic', color: '#2b211a', fontFamily: 'var(--font-body)', fontSize: '.84rem' }}>&ldquo;{tc.input}&rdquo;</td>
+                            <td style={{ padding: '8px 10px' }}>
                               <span style={{
-                                padding: '2px 7px', borderRadius: 2, fontWeight: 800,
-                                fontSize: '.64rem', fontFamily: 'var(--font-display)',
-                                color: tc.expectedStatus === 'accepted' ? '#2e624d' : '#bd3124',
-                                border: `1px solid ${tc.expectedStatus === 'accepted' ? '#2e624d' : '#bd3124'}`,
-                                background: tc.expectedStatus === 'accepted' ? 'rgba(46,98,77,0.08)' : 'rgba(189,49,36,0.08)',
+                                padding: '3px 8px', borderRadius: 2, fontWeight: 800,
+                                fontSize: '.65rem', fontFamily: 'var(--font-display)',
+                                color: isAcc ? '#2e624d' : '#bd3124',
+                                border: `1px solid ${isAcc ? '#2e624d' : '#bd3124'}`,
+                                background: isAcc ? 'rgba(46,98,77,0.1)' : 'rgba(189,49,36,0.1)',
                               }}>
-                                {tc.expectedStatus === 'accepted' ? 'ADMIT' : 'DENY'}
+                                {isAcc ? 'ACCEPTED' : 'REJECTED'}
                               </span>
                             </td>
-                            <td style={{ padding: '7px 10px' }}>
-                              {res ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                  {res.passed
-                                    ? <CheckCircle2 size={14} style={{ color: '#2e624d' }} />
-                                    : <XCircle      size={14} style={{ color: '#bd3124' }} />}
-                                  <span style={{ fontWeight: 800, fontSize: '.68rem', fontFamily: 'var(--font-display)', color: res.passed ? '#2e624d' : '#bd3124' }}>
-                                    {res.actualStatus === 'accepted' ? 'ADMITTED' : 'DENIED'}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span style={{ color: '#88705c', fontSize: '.7rem', fontStyle: 'italic' }}>Awaiting…</span>
-                              )}
-                            </td>
-                            <td style={{ padding: '7px 10px', color: '#524338', fontFamily: 'var(--font-body)', fontSize: '.77rem' }}>
-                              {res ? res.actualReason : tc.notes}
+                            <td style={{ padding: '8px 10px', color: '#524338', fontFamily: 'var(--font-body)', fontSize: '.78rem' }}>
+                              {tc.notes}
                             </td>
                           </tr>
                         );
@@ -719,66 +636,34 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
                 }}>✕</button>
               </div>
 
-              {/* ── METRIC STAMPS ── */}
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(145px,1fr))', gap:10, marginBottom:16 }}>
-                {[
-                  { label:'Pass Rate',         val:`${passRt}% (${passN}/${execN||25})`, ok: passRt===100 },
-                  { label:'Schema-Valid Rate', val:'100% (25/25)', ok:true },
-                  { label:'Unsafe Executions', val:'0 (Target Met)', ok:true },
-                ].map(c => (
-                  <div key={c.label} style={{
-                    padding:'10px 14px', borderRadius: 4,
-                    background:'rgba(80,38,10,.06)',
-                    border:'1px solid rgba(140,80,24,.38)',
-                    boxShadow: 'inset 0 1px 3px rgba(80,38,10,.08)',
-                  }}>
-                    <div style={{ fontSize:'.64rem', textTransform:'uppercase', fontFamily:'var(--font-display)', color:'#6c4a28', fontWeight:800, letterSpacing:'.06em', marginBottom:2 }}>{c.label}</div>
-                    <div style={{ fontFamily:'monospace', fontSize:'1.08rem', fontWeight:800, color: c.ok ? '#1e5f30' : '#871922' }}>{c.val}</div>
-                  </div>
-                ))}
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <button type="button" onClick={runAllTests} disabled={isRunning} style={{
-                    width:'100%', height:'100%', minHeight: 46,
-                    padding:'10px 16px',
-                    background: isRunning
-                      ? 'linear-gradient(to bottom, #bd8a30, #96671c)'
-                      : 'linear-gradient(to bottom, #98222b, #6b141b)',
-                    color:'#fef2dc',
-                    border:'1px solid rgba(45,8,12,.7)',
-                    borderRadius:4,
-                    fontFamily:'var(--font-display)', fontWeight:800,
-                    fontSize:'.78rem', letterSpacing:'.08em',
-                    cursor: isRunning ? 'wait' : 'pointer',
-                    display:'flex', alignItems:'center', justifyContent:'center', gap:6,
-                    boxShadow:'0 4px 12px rgba(60,10,16,.45), inset 0 1px 2px rgba(255,200,160,.3)',
-                    transition:'all .18s ease',
-                  }}>
-                    <Play size={13} fill="currentColor" />
-                    {isRunning ? 'Reviewing…' : 'Convene the Court'}
-                  </button>
-                </div>
-              </div>
-
-              {/* ── FILTER TABS ── */}
-              <div style={{ display:'flex', gap:6, marginBottom:12, flexWrap:'wrap' }}>
-                {[
-                  { id:'all',                       l:'All Decrees (25)' },
-                  { id:'valid_self_benefit',         l:'Valid – Self-Benefit' },
-                  { id:'boundary',                   l:'Boundary Bounds' },
-                  { id:'invalid_unsupported_action', l:'Unsupported' },
-                  { id:'ambiguous',                  l:'Ambiguous' },
-                  { id:'adversarial',                l:'Adversarial' },
-                ].map(c => (
-                  <button key={c.id} type="button" onClick={() => setCatFilter(c.id)} style={{
-                    padding:'4px 10px', borderRadius:3,
-                    border: catFilter===c.id ? '1px solid #741720' : '1px solid rgba(135,80,24,.35)',
-                    background: catFilter===c.id ? 'linear-gradient(to bottom, #871922, #6b141b)' : 'rgba(100,50,15,.06)',
-                    color: catFilter===c.id ? '#fef0d8' : '#5c3e1e',
-                    fontSize:'.68rem', fontWeight:800,
-                    fontFamily:'var(--font-display)', cursor:'pointer', letterSpacing:'.05em',
-                    boxShadow: catFilter===c.id ? '0 2px 6px rgba(70,12,18,.35)' : 'none',
-                  }}>{c.l}</button>
-                ))}
+              {/* ── FILTER TABS (Only ALL, ACCEPTED, REJECTED) ── */}
+              <div style={{ display:'flex', gap:8, marginBottom:14 }}>
+                {FILTER_TABS.map(tab => {
+                  const isActive = statusFilter === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setStatusFilter(tab.id)}
+                      style={{
+                        padding: '6px 16px',
+                        borderRadius: 3,
+                        border: isActive ? '1px solid #741720' : '1px solid rgba(135,80,24,.4)',
+                        background: isActive ? 'linear-gradient(to bottom, #871922, #6b141b)' : 'rgba(80,38,10,.05)',
+                        color: isActive ? '#fef0d8' : '#5c3e1e',
+                        fontSize: '.74rem',
+                        fontWeight: 800,
+                        fontFamily: 'var(--font-display)',
+                        cursor: 'pointer',
+                        letterSpacing: '.06em',
+                        boxShadow: isActive ? '0 2px 8px rgba(70,12,18,.35)' : 'none',
+                        transition: 'all .15s ease',
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* ── MANUSCRIPT TABLE ── */}
@@ -790,7 +675,7 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
                 <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'.76rem' }}>
                   <thead>
                     <tr style={{ borderBottom:'1px solid rgba(135,80,24,.35)', textAlign:'left' }}>
-                      {['Scroll #','Petition Text','Expected','Verdict','Court Grounds'].map(h => (
+                      {['Scroll #', 'Petition Text', 'Status', 'Court Grounds'].map(h => (
                         <th key={h} style={{
                           padding:'8px 10px', fontFamily:'var(--font-display)',
                           color:'#381c08', fontWeight:800, fontSize:'.69rem',
@@ -801,38 +686,24 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
                   </thead>
                   <tbody>
                     {filtered.map(tc => {
-                      const res = results[tc.id];
+                      const isAcc = tc.expectedStatus === 'accepted';
                       return (
                         <tr key={tc.id} style={{ borderBottom:'1px dashed rgba(140,85,30,.25)' }}>
-                          <td style={{ padding:'7px 10px', fontFamily:'monospace', fontWeight:800, color:'#241206' }}>{tc.id}</td>
-                          <td style={{ padding:'7px 10px', fontStyle:'italic', color:'#2e1808', fontFamily:'var(--font-body)', fontSize:'.82rem' }}>&ldquo;{tc.input}&rdquo;</td>
-                          <td style={{ padding:'7px 10px' }}>
+                          <td style={{ padding:'8px 10px', fontFamily:'monospace', fontWeight:800, color:'#241206' }}>{tc.id}</td>
+                          <td style={{ padding:'8px 10px', fontStyle:'italic', color:'#2e1808', fontFamily:'var(--font-body)', fontSize:'.84rem' }}>&ldquo;{tc.input}&rdquo;</td>
+                          <td style={{ padding:'8px 10px' }}>
                             <span style={{
-                              padding:'2px 7px', borderRadius:2, fontWeight:800,
-                              fontSize:'.64rem', fontFamily:'var(--font-display)',
-                              color: tc.expectedStatus==='accepted' ? '#1e5f30' : '#871922',
-                              border:`1px solid ${tc.expectedStatus==='accepted' ? '#1e5f30' : '#871922'}`,
-                              background: tc.expectedStatus==='accepted' ? 'rgba(30,95,48,.08)' : 'rgba(135,25,34,.08)',
+                              padding:'3px 8px', borderRadius:2, fontWeight:800,
+                              fontSize:'.65rem', fontFamily:'var(--font-display)',
+                              color: isAcc ? '#1e5f30' : '#871922',
+                              border:`1px solid ${isAcc ? '#1e5f30' : '#871922'}`,
+                              background: isAcc ? 'rgba(30,95,48,.1)' : 'rgba(135,25,34,.1)',
                             }}>
-                              {tc.expectedStatus==='accepted' ? 'ADMIT' : 'DENY'}
+                              {isAcc ? 'ACCEPTED' : 'REJECTED'}
                             </span>
                           </td>
-                          <td style={{ padding:'7px 10px' }}>
-                            {res ? (
-                              <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                                {res.passed
-                                  ? <CheckCircle2 size={14} style={{ color:'#1e5f30' }} />
-                                  : <XCircle      size={14} style={{ color:'#871922' }} />}
-                                <span style={{ fontWeight:800, fontSize:'.68rem', fontFamily:'var(--font-display)', color: res.passed ? '#1e5f30' : '#871922' }}>
-                                  {res.actualStatus==='accepted' ? 'ADMITTED' : 'DENIED'}
-                                </span>
-                              </div>
-                            ) : (
-                              <span style={{ color:'#9a6a24', fontSize:'.7rem', fontStyle:'italic' }}>Awaiting…</span>
-                            )}
-                          </td>
-                          <td style={{ padding:'7px 10px', color:'#5f4124', fontFamily:'var(--font-body)', fontSize:'.77rem' }}>
-                            {res ? res.actualReason : tc.notes}
+                          <td style={{ padding:'8px 10px', color:'#5f4124', fontFamily:'var(--font-body)', fontSize:'.78rem' }}>
+                            {tc.notes}
                           </td>
                         </tr>
                       );
@@ -900,58 +771,42 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
       }}>
         {/* Header */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid var(--line)', paddingBottom:14, marginBottom:16 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:36, height:36, borderRadius:'var(--radius-sm)', background:'var(--surface-2)', color:'var(--accent-2)', border:'1px solid var(--accent-2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <TestTube size={20} />
-            </div>
-            <div>
-              <h3 style={{ fontFamily:'var(--font-display)', fontSize:'1.2rem', fontWeight:800, color:'var(--text)' }}>AI Judicial Evaluation Harness (PRD §18)</h3>
-              <p style={{ fontSize:'.75rem', color:'var(--text-muted)' }}>Frozen dataset · 25 amendments · valid, boundary, invalid, ambiguous, adversarial.</p>
-            </div>
+          <div>
+            <h3 style={{ fontFamily:'var(--font-display)', fontSize:'1.2rem', fontWeight:800, color:'var(--text)' }}>Constitutional Rules & Ordinances</h3>
+            <p style={{ fontSize:'.75rem', color:'var(--text-muted)' }}>Frozen dataset · 25 amendments reviewed under PRD §18.</p>
           </div>
-          <button type="button" onClick={handleClose} style={{ background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer' }}>
-            <X size={20} />
+          <button type="button" onClick={handleClose} style={{ background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', fontSize: '1.2rem' }}>
+            ✕
           </button>
         </div>
 
-        {/* Metrics */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:10, marginBottom:16 }}>
-          {[
-            { label:'Pass Rate',         val:`${passRt}% (${passN}/${execN||25})`, ok: passRt===100 },
-            { label:'Schema-Valid Rate', val:'100% (25/25)',   ok:true },
-            { label:'Unsafe Executions', val:'0 (PRD Target)', ok:true },
-          ].map(c => (
-            <div key={c.label} style={{ padding:12, borderRadius:'var(--radius-sm)', background:'var(--surface-2)', border:'1px solid var(--line)' }}>
-              <div style={{ fontSize:'.68rem', textTransform:'uppercase', color:'var(--text-muted)', fontWeight:700, fontFamily:'var(--font-display)' }}>{c.label}</div>
-              <div style={{ fontFamily:'monospace', fontSize:'1.25rem', fontWeight:800, color: c.ok ? 'var(--ok)' : 'var(--accent-2)' }}>{c.val}</div>
-            </div>
-          ))}
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <button type="button" onClick={runAllTests} disabled={isRunning} className="btn btn-accent" style={{ padding:'10px 20px', fontSize:'.82rem' }}>
-              <Play size={14} fill="currentColor" />
-              {isRunning ? 'RUNNING…' : 'RUN ALL 25 TESTS'}
-            </button>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div style={{ display:'flex', gap:6, marginBottom:12, flexWrap:'wrap' }}>
-          {[
-            { id:'all',                       l:'All (25)' },
-            { id:'valid_self_benefit',         l:'Valid Self-Benefit' },
-            { id:'boundary',                   l:'Boundary Bounds' },
-            { id:'invalid_unsupported_action', l:'Unsupported Actions' },
-            { id:'ambiguous',                  l:'Ambiguous' },
-            { id:'adversarial',                l:'Adversarial & Loops' },
-          ].map(c => (
-            <button key={c.id} type="button" onClick={() => setCatFilter(c.id)} style={{
-              padding:'4px 10px', borderRadius:'var(--radius-sm)',
-              border: catFilter===c.id ? '1px solid var(--accent)' : '1px solid var(--line)',
-              background: catFilter===c.id ? 'var(--surface-2)' : 'transparent',
-              color: catFilter===c.id ? 'var(--accent)' : 'var(--text-muted)',
-              fontSize:'.72rem', fontWeight:700, fontFamily:'var(--font-display)', cursor:'pointer',
-            }}>{c.l}</button>
-          ))}
+        {/* Filters: ONLY ALL, ACCEPTED, REJECTED */}
+        <div style={{ display:'flex', gap:8, marginBottom:14 }}>
+          {FILTER_TABS.map(tab => {
+            const isActive = statusFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setStatusFilter(tab.id)}
+                style={{
+                  padding:'6px 18px',
+                  borderRadius:'var(--radius-sm)',
+                  border: isActive ? '1px solid var(--accent)' : '1px solid var(--line)',
+                  background: isActive ? 'var(--accent)' : 'var(--surface-2)',
+                  color: isActive ? '#fff' : 'var(--text-muted)',
+                  fontSize:'.75rem',
+                  fontWeight: 700,
+                  fontFamily:'var(--font-display)',
+                  cursor:'pointer',
+                  letterSpacing:'.04em',
+                  transition: 'all .15s ease',
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Table */}
@@ -959,40 +814,30 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'.78rem' }}>
             <thead>
               <tr style={{ background:'var(--surface-2)', borderBottom:'1px solid var(--line)', textAlign:'left' }}>
-                {['ID','Proposal Prompt','Expected','Result','Engine Grounds'].map(h => (
-                  <th key={h} style={{ padding:'8px 12px', color:'var(--text)' }}>{h}</th>
+                {['ID', 'Proposal Prompt', 'Status', 'Engine Grounds'].map(h => (
+                  <th key={h} style={{ padding:'10px 12px', color:'var(--text)' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map(tc => {
-                const res = results[tc.id];
+                const isAcc = tc.expectedStatus === 'accepted';
                 return (
                   <tr key={tc.id} style={{ borderBottom:'1px solid var(--line)' }}>
-                    <td style={{ padding:'8px 12px', fontFamily:'monospace', fontWeight:700, color:'var(--text)' }}>{tc.id}</td>
-                    <td style={{ padding:'8px 12px', fontStyle:'italic', color:'var(--text)' }}>&ldquo;{tc.input}&rdquo;</td>
-                    <td style={{ padding:'8px 12px' }}>
+                    <td style={{ padding:'10px 12px', fontFamily:'monospace', fontWeight:700, color:'var(--text)' }}>{tc.id}</td>
+                    <td style={{ padding:'10px 12px', fontStyle:'italic', color:'var(--text)' }}>&ldquo;{tc.input}&rdquo;</td>
+                    <td style={{ padding:'10px 12px' }}>
                       <span style={{
-                        padding:'2px 6px', borderRadius:'var(--radius-sm)', fontWeight:700, fontSize:'.68rem',
+                        padding:'3px 8px', borderRadius:'var(--radius-sm)', fontWeight:700, fontSize:'.68rem',
                         background:'var(--surface-2)',
-                        color: tc.expectedStatus==='accepted' ? 'var(--ok)' : 'var(--danger)',
-                        border:`1px solid ${tc.expectedStatus==='accepted' ? 'var(--ok)' : 'var(--danger)'}`,
-                      }}>{tc.expectedStatus.toUpperCase()}</span>
+                        color: isAcc ? 'var(--ok)' : 'var(--danger)',
+                        border:`1px solid ${isAcc ? 'var(--ok)' : 'var(--danger)'}`,
+                      }}>
+                        {isAcc ? 'ACCEPTED' : 'REJECTED'}
+                      </span>
                     </td>
-                    <td style={{ padding:'8px 12px' }}>
-                      {res ? (
-                        <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                          {res.passed
-                            ? <CheckCircle2 size={16} style={{ color:'var(--ok)'     }} />
-                            : <XCircle      size={16} style={{ color:'var(--danger)' }} />}
-                          <span style={{ fontWeight:700, fontSize:'.7rem', color:'var(--text)' }}>
-                            {res.actualStatus.toUpperCase()}
-                          </span>
-                        </div>
-                      ) : <span style={{ color:'var(--text-muted)' }}>Pending</span>}
-                    </td>
-                    <td style={{ padding:'8px 12px', color:'var(--text-muted)' }}>
-                      {res ? res.actualReason : tc.notes}
+                    <td style={{ padding:'10px 12px', color:'var(--text-muted)' }}>
+                      {tc.notes}
                     </td>
                   </tr>
                 );
@@ -1004,7 +849,7 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
         {/* Footer */}
         <div style={{ textAlign:'right', marginTop:16 }}>
           <button type="button" onClick={handleClose} className="btn btn-secondary" style={{ padding:'8px 18px', fontSize:'.8rem' }}>
-            Close Evaluation Suite
+            Close Rules
           </button>
         </div>
       </div>

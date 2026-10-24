@@ -181,8 +181,8 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Global Actions and Theme Picker */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-        {/* Compact Theme Picker */}
-        <ThemePicker compact />
+        {/* Compact Theme Picker (only during match setup before game starts) */}
+        {state.phase === 'setup' && <ThemePicker compact />}
 
         {/* Local AI Model Status Pill */}
         <button
@@ -221,15 +221,15 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </button>
 
-        {/* 25-amendment Evaluation Modal */}
+        {/* Rules Scroll Modal Button */}
         <button
           onClick={onOpenEvaluation}
-          title="Run 25-amendment AI evaluation suite"
+          title="Open Rules & Constitutional Ordinances"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '6px 10px',
+            padding: '6px 12px',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--line)',
             background: 'var(--surface-2)',
@@ -241,52 +241,6 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <TestTube size={14} style={{ color: 'var(--accent-2)' }} />
           <span>Rules</span>
-        </button>
-
-        {/* Export JSON Rulebook */}
-        {state.phase !== 'setup' && (
-          <button
-            onClick={onExportRulebook}
-            title="Download compiled active rules as JSON"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 10px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--line)',
-              background: 'var(--surface-2)',
-              color: 'var(--text)',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            <Download size={14} />
-            <span>Export</span>
-          </button>
-        )}
-
-        {/* Reset / New Game */}
-        <button
-          onClick={onResetGame}
-          title="Return to Match Setup"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
-            padding: '6px 10px',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--danger)',
-            background: 'var(--surface-2)',
-            color: 'var(--danger)',
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
-          <RotateCcw size={13} />
-          <span>New Game</span>
         </button>
       </div>
     </header>

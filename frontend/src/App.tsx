@@ -383,10 +383,13 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* 25-amendment Evaluation Modal */}
+      {/* Rules / Evaluation Modal */}
       {showEvaluationModal && (
         <EvaluationModal
           config={state.config}
+          rules={state.rules}
+          phase={state.phase}
+          turnCount={state.turnCount}
           onClose={() => setShowEvaluationModal(false)}
         />
       )}
