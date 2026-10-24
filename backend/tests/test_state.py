@@ -17,7 +17,7 @@ class TestCreateGame:
         assert set(s.keys()) == {
             "game_id", "phase", "settings", "players", "current_player",
             "turn", "last_roll", "moves_since_amend", "rules", "log",
-            "leaderboard", "winner", "rulebook_info",
+            "leaderboard", "winner", "rulebook_info", "last_actor_id",
         }
 
     def test_draft_starts_drafting(self):

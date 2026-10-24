@@ -116,6 +116,7 @@ class AmendRequest(BaseModel):
 class AmendResponse(BaseModel):
     """Response for POST /game/{id}/amend."""
     accepted: bool
+    category: Optional[str] = None
     rule: Optional[dict]
     error: Optional[str]
     state: dict
@@ -279,10 +280,10 @@ async def create_new_game(request: CreateGameRequest):
             detail="dice_type must be '1d6', '2d6', or '1d12'"
         )
 
-    if not (5 <= settings_dict["win_target"] <= 30):
+    if not (5 <= settings_dict["win_target"] <= 50):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="win_target must be between 5 and 30"
+            detail="win_target must be between 5 and 50"
         )
 
     if settings_dict["mode"] not in ["draft", "live", "hybrid"]:
@@ -393,13 +394,15 @@ async def execute_player_turn(game_id: str, request: ExecuteTurnRequest):
     rng = get_rng()
     execute_turn(state, rng)
 
-    # Increment moves_since_amend (for live mode)
-    if state["settings"]["mode"] == "live" and state["phase"] == "playing":
-        state["moves_since_amend"] += 1
-
     roll = state["last_roll"]
 
     return ExecuteTurnResponse(state=state, roll=roll)
+
+
+def _consume_live_amendment_opportunity(state: dict) -> None:
+    """Close the current live-mode amendment opportunity."""
+    if state["settings"]["mode"] == "live":
+        state["moves_since_amend"] = 0
 
 
 @app.post("/game/{game_id}/amend", response_model=AmendResponse)
@@ -426,7 +429,7 @@ async def submit_amendment(game_id: str, request: AmendRequest):
             detail=f"Player {request.player_id} not found in this game"
         )
 
-    # Check if amendment is allowed
+    # Check whether an amendment opportunity currently exists.
     allowed, reason = can_amend(state)
     if not allowed:
         return AmendResponse(
@@ -436,10 +439,21 @@ async def submit_amendment(game_id: str, request: AmendRequest):
             state=state
         )
 
+    # Only the player who completed the qualifying turn may amend.
+    if state["settings"]["mode"] == "live":
+        if request.player_id != state.get("last_actor_id"):
+            return AmendResponse(
+                accepted=False,
+                rule=None,
+                error="Only the player who completed the qualifying turn may amend.",
+                state=state,
+            )
+
     # Compile amendment using the Court
     try:
         court_response = compile_amendment(request.text, state, engine_validate_rule)
     except Exception as e:
+        _consume_live_amendment_opportunity(state)
         return AmendResponse(
             accepted=False,
             rule=None,
@@ -449,8 +463,10 @@ async def submit_amendment(game_id: str, request: AmendRequest):
 
     # If Court rejected, return immediately
     if not court_response["accepted"]:
+        _consume_live_amendment_opportunity(state)
         return AmendResponse(
             accepted=False,
+            category=court_response.get("category"),
             rule=None,
             error=court_response["error"],
             state=state
@@ -461,6 +477,7 @@ async def submit_amendment(game_id: str, request: AmendRequest):
     success, error = add_amendment(state, rule)
 
     if not success:
+        _consume_live_amendment_opportunity(state)
         return AmendResponse(
             accepted=False,
             rule=None,
@@ -468,19 +485,50 @@ async def submit_amendment(game_id: str, request: AmendRequest):
             state=state
         )
 
-    # Success - reset moves_since_amend for live mode
-    if state["settings"]["mode"] == "live":
-        state["moves_since_amend"] = 0
+    # Close the opportunity after successful insertion.
+    _consume_live_amendment_opportunity(state)
 
     # Return the rule with id assigned by engine
     added_rule = state["rules"][-1]
-
+    
     return AmendResponse(
         accepted=True,
+        category="accepted",
         rule=added_rule,
         error=None,
         state=state
     )
+
+
+@app.post("/game/{game_id}/pass-amendment")
+async def pass_amendment(game_id: str, request: ExecuteTurnRequest):
+    """Pass a live-mode amendment opportunity without advancing the turn."""
+    if game_id not in games:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Game {game_id} not found",
+        )
+
+    state = games[game_id]
+    player_ids = [p["id"] for p in state["players"]]
+    if request.player_id not in player_ids:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Player {request.player_id} not found in this game",
+        )
+
+    if state["settings"]["mode"] != "live":
+        return {"accepted": False, "error": "Passing is only supported in live mode.", "state": state}
+
+    if request.player_id != state.get("last_actor_id"):
+        return {"accepted": False, "error": "Only the player who completed the qualifying turn may pass.", "state": state}
+
+    allowed, reason = can_amend(state)
+    if not allowed:
+        return {"accepted": False, "error": reason, "state": state}
+
+    _consume_live_amendment_opportunity(state)
+    return {"accepted": True, "error": None, "state": state}
 
 
 @app.get("/rulebooks")
