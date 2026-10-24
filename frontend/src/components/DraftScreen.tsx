@@ -14,6 +14,8 @@ import {
   AcceptedDraftRule,
 } from '../engine/draftResolution';
 import { submitProposalForAdmission, AdmissionContext } from '../services/admissionService';
+import { submitBackendCompile } from '../services/gameApi';
+import { adaptBackendRuleToCompiledRule } from '../services/ruleAdapter';
 import {
   ScrollText,
   ShieldAlert,
@@ -124,37 +126,22 @@ export const DraftScreen: React.FC<DraftScreenProps> = ({
     line: DraftLineInput,
     acceptedSoFar: AcceptedDraftRule[]
   ): Promise<DraftLineResult> => {
-    const player = players.find((p) => p.id === line.playerId) || players[0];
-    const admissionContext: AdmissionContext = {
-      proposer: player,
-      currentTurn: 1,
-      config,
-      activeRules: acceptedSoFar.map((a) => a.rule),
-      offlineModel: config.simulateOfflineModel,
-    };
+    const useMockCourt = import.meta.env.VITE_USE_MOCK_COURT === 'true';
 
     let ruling: AIRuling | null = null;
     let isTechnicalFailure = false;
 
-    // First attempt
-    try {
-      ruling = await submitProposalForAdmission(line.text, admissionContext);
-      if (
-        ruling.reason &&
-        (ruling.reason.includes('unavailable') ||
-          ruling.reason.includes('timed out') ||
-          ruling.reason.includes('unreachable'))
-      ) {
-        isTechnicalFailure = true;
-      }
-    } catch {
-      isTechnicalFailure = true;
-    }
+    if (useMockCourt) {
+      const player = players.find((p) => p.id === line.playerId) || players[0];
+      const admissionContext: AdmissionContext = {
+        proposer: player,
+        currentTurn: 1,
+        config,
+        activeRules: acceptedSoFar.map((a) => a.rule),
+        offlineModel: config.simulateOfflineModel,
+      };
 
-    // Single automatic retry on technical failure
-    if (isTechnicalFailure) {
       try {
-        await new Promise((res) => setTimeout(res, 250));
         ruling = await submitProposalForAdmission(line.text, admissionContext);
         if (
           ruling.reason &&
@@ -163,11 +150,146 @@ export const DraftScreen: React.FC<DraftScreenProps> = ({
             ruling.reason.includes('unreachable'))
         ) {
           isTechnicalFailure = true;
-        } else {
-          isTechnicalFailure = false;
         }
       } catch {
         isTechnicalFailure = true;
+      }
+
+      if (isTechnicalFailure) {
+        try {
+          await new Promise((res) => setTimeout(res, 250));
+          ruling = await submitProposalForAdmission(line.text, admissionContext);
+          if (
+            ruling.reason &&
+            (ruling.reason.includes('unavailable') ||
+              ruling.reason.includes('timed out') ||
+              ruling.reason.includes('unreachable'))
+          ) {
+            isTechnicalFailure = true;
+          } else {
+            isTechnicalFailure = false;
+          }
+        } catch {
+          isTechnicalFailure = true;
+        }
+      }
+    } else {
+      const settings = {
+        board_size: Math.round(Math.sqrt(config.boardSize)),
+        dice_type: config.dice,
+        win_target: config.winTarget,
+        max_rules: getLedgerLimit(config.boardSize),
+        mode: 'draft',
+      };
+
+      const acceptedBackendRules = acceptedSoFar.map((a) => ({
+        trigger: a.rule.trigger,
+        condition: {
+          mode: 'all',
+          predicates:
+            a.rule.condition !== 'always'
+              ? [
+                  {
+                    name: a.rule.condition,
+                    args:
+                      a.rule.condition_value !== undefined
+                        ? { value: a.rule.condition_value }
+                        : undefined,
+                  },
+                ]
+              : [],
+        },
+        effect: {
+          type: a.rule.effect,
+          amount: a.rule.effect_value,
+          target:
+            a.rule.target === 'active_player'
+              ? 'self'
+              : a.rule.target === 'last_place'
+              ? 'last'
+              : a.rule.target === 'opponents'
+              ? 'all_others'
+              : a.rule.target,
+        },
+        source: a.rule.original_text,
+      }));
+
+      const callCompile = async () => {
+        const res = await submitBackendCompile(line.text, settings, acceptedBackendRules);
+        if (res.category === 'court_error') {
+          throw new Error(res.error || 'The local AI model (Ollama) is unavailable or timed out.');
+        }
+        return res;
+      };
+
+      try {
+        const res = await callCompile();
+        if (res.accepted && res.rule) {
+          const compiled = adaptBackendRuleToCompiledRule(
+            res.rule,
+            line.text,
+            line.playerId,
+            line.playerName,
+            1
+          );
+          ruling = {
+            status: 'accepted',
+            normalized_rule: String(res.rule.source ?? line.text),
+            compiled_rule: compiled,
+            reason: '',
+            timestamp: Date.now(),
+          };
+        } else {
+          ruling = {
+            status: 'rejected',
+            normalized_rule: line.text,
+            reason:
+              res.error ||
+              (res.category === 'not_a_game_rule'
+                ? 'This is not a game rule. Please propose a rule that changes the gameplay.'
+                : 'Constitutional limits exceeded or ambiguous phrasing.'),
+            timestamp: Date.now(),
+          };
+        }
+      } catch {
+        isTechnicalFailure = true;
+      }
+
+      if (isTechnicalFailure) {
+        try {
+          await new Promise((res) => setTimeout(res, 250));
+          const res = await callCompile();
+          isTechnicalFailure = false;
+          if (res.accepted && res.rule) {
+            const compiled = adaptBackendRuleToCompiledRule(
+              res.rule,
+              line.text,
+              line.playerId,
+              line.playerName,
+              1
+            );
+            ruling = {
+              status: 'accepted',
+              normalized_rule: String(res.rule.source ?? line.text),
+              compiled_rule: compiled,
+              reason: '',
+              timestamp: Date.now(),
+            };
+          } else {
+            ruling = {
+              status: 'rejected',
+              normalized_rule: line.text,
+              reason:
+                res.error ||
+                (res.category === 'not_a_game_rule'
+                  ? 'This is not a game rule. Please propose a rule that changes the gameplay.'
+                  : 'Constitutional limits exceeded or ambiguous phrasing.'),
+              timestamp: Date.now(),
+            };
+          }
+        } catch {
+          isTechnicalFailure = true;
+        }
       }
     }
 
@@ -181,7 +303,7 @@ export const DraftScreen: React.FC<DraftScreenProps> = ({
         playerAvatar: line.playerAvatar,
         originalText: line.text,
         status: 'check-failed',
-        reason: 'Verification service temporarily unavailable or timed out. Retry available.',
+        reason: 'The local AI model (Ollama) is unavailable or timed out. Match state remains unchanged.',
         rawJson: null,
       };
     }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BoardSize,
   DiceType,
@@ -6,6 +6,7 @@ import {
   RuleMode,
 } from '../types/game';
 import { BUNDLED_RULEBOOKS } from '../data/rulebooks';
+import { fetchCourtHealth, CourtHealth } from '../services/gameApi';
 import {
   Dices,
   Grid,
@@ -40,6 +41,16 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame }) => {
 
   const [includeGemmaPlayer, setIncludeGemmaPlayer] = useState<boolean>(false);
   const [amendmentCadence, setAmendmentCadence] = useState<number>(1);
+  const [courtHealth, setCourtHealth] = useState<CourtHealth | null>(null);
+  const [healthError, setHealthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchCourtHealth()
+      .then((data) => setCourtHealth(data))
+      .catch((err) => {
+        setHealthError(err instanceof Error ? err.message : 'Could not connect to backend');
+      });
+  }, []);
 
   const selectedRulebook = BUNDLED_RULEBOOKS[selectedRulebookIdx];
 
@@ -178,6 +189,72 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame }) => {
         </div>
       </div>
 
+      {/* Court AI Status Banner */}
+      <div
+        className="panel"
+        style={{
+          marginBottom: '20px',
+          padding: '12px 18px',
+          borderRadius: 'var(--radius)',
+          background:
+            courtHealth?.ollama_reachable && courtHealth?.model_installed
+              ? 'rgba(34, 197, 94, 0.08)'
+              : 'rgba(234, 179, 8, 0.1)',
+          border: `1px solid ${
+            courtHealth?.ollama_reachable && courtHealth?.model_installed
+              ? 'rgba(34, 197, 94, 0.3)'
+              : 'rgba(234, 179, 8, 0.4)'
+          }`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '10px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '1.2rem' }}>
+            {courtHealth?.ollama_reachable && courtHealth?.model_installed ? '🏛️' : '⚠️'}
+          </span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text)', fontFamily: 'var(--font-display)' }}>
+              Court AI Engine:{' '}
+              {courtHealth
+                ? `${courtHealth.provider} (${courtHealth.model})`
+                : healthError
+                ? 'Backend Offline'
+                : 'Checking status...'}
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              {courtHealth?.ollama_reachable && courtHealth?.model_installed ? (
+                <span style={{ color: '#16a34a', fontWeight: 600 }}>
+                  ✓ Local AI ready — amendments will be judged by {courtHealth.model}
+                </span>
+              ) : courtHealth?.ollama_reachable && !courtHealth?.model_installed ? (
+                <span style={{ color: '#d97706', fontWeight: 600 }}>
+                  Model not installed. Run in your terminal:{' '}
+                  <code style={{ background: 'var(--surface-2)', padding: '2px 6px', borderRadius: '4px' }}>
+                    ollama pull {courtHealth.model}
+                  </code>
+                </span>
+              ) : courtHealth && !courtHealth.ollama_reachable ? (
+                <span style={{ color: '#dc2626', fontWeight: 600 }}>
+                  Ollama is not running. Start it with:{' '}
+                  <code style={{ background: 'var(--surface-2)', padding: '2px 6px', borderRadius: '4px' }}>
+                    ollama serve
+                  </code>
+                </span>
+              ) : healthError ? (
+                <span style={{ color: '#dc2626' }}>
+                  Cannot connect to backend server on http://localhost:8000
+                </span>
+              ) : (
+                'Connecting to Court AI health endpoint...'
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Grid of Settings */}
       <div

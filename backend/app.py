@@ -8,6 +8,7 @@ import os
 import json
 import sys
 import random
+import threading
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 
@@ -23,6 +24,8 @@ from backend.engine.validate import can_amend, validate_rule as engine_validate_
 
 # Court imports
 from backend.court.compiler import compile_amendment
+from backend.court.config import CourtConfig
+from backend.court.providers import get_provider
 
 # Rules Book persistence imports
 from backend.rules_book import (
@@ -128,6 +131,39 @@ class AmendResponse(BaseModel):
     rule: Optional[dict]
     error: Optional[str]
     state: dict
+
+
+class CourtCompileSettings(BaseModel):
+    """Settings passed to stateless /court/compile."""
+    board_size: int = Field(default=6, description="Grid dimension")
+    dice_type: str = Field(default="1d6", description="Dice configuration")
+    win_target: int = Field(default=21, description="Score needed to win")
+    max_rules: int = Field(default=8, description="Maximum rules allowed")
+    mode: Optional[str] = Field(default="draft", description="Game mode")
+
+
+class CourtCompileRequest(BaseModel):
+    """Request for stateless POST /court/compile."""
+    text: str = Field(..., description="Natural language proposal text")
+    settings: Optional[CourtCompileSettings] = None
+    accepted_rules: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
+
+
+class CourtCompileResponse(BaseModel):
+    """Response for stateless POST /court/compile."""
+    accepted: bool
+    category: Optional[str] = None
+    rule: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+
+
+class CourtHealthResponse(BaseModel):
+    """Response for GET /court/health."""
+    provider: str
+    model: str
+    ollama_reachable: bool
+    model_installed: bool
+    message: str
 
 
 class RulesBookItemResponse(BaseModel):
@@ -672,6 +708,108 @@ async def get_rules_book_endpoint(game_id: str):
         )
 
     return RulesBookResponse(game_id=game_id, mode="hybrid", rules=persisted_rules)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Startup event handler: logs provider mode and warms up model in background."""
+    # Task 6b: Log Court provider on startup
+    if CourtConfig.PROVIDER == "ollama":
+        print(f"Court provider: ollama (local, {CourtConfig.OLLAMA_MODEL})")
+    elif CourtConfig.PROVIDER == "gemini":
+        print("WARNING: Court provider: gemini (HOSTED) - sending game data to hosted service!")
+    else:
+        print(f"Court provider: {CourtConfig.PROVIDER}")
+
+    # Task 4b: Warm the model with a tiny request in a background thread
+    def _warmup():
+        try:
+            if CourtConfig.PROVIDER == "ollama":
+                provider = get_provider()
+                if provider.is_available():
+                    provider.generate(
+                        prompt="warmup",
+                        system_prompt="Respond with OK.",
+                    )
+        except Exception as e:
+            print(f"Warning: Court warm-up failed (non-blocking): {e}", file=sys.stderr)
+
+    warmup_thread = threading.Thread(target=_warmup, daemon=True)
+    warmup_thread.start()
+
+
+@app.get("/court/health", response_model=CourtHealthResponse)
+async def court_health_endpoint():
+    """
+    Health check endpoint for the Court AI provider.
+    Returns status of Ollama connectivity and model installation.
+    """
+    try:
+        provider = get_provider()
+        if hasattr(provider, "availability_detail"):
+            reachable, model_ok, message = provider.availability_detail()
+        else:
+            reachable = provider.is_available()
+            model_ok = reachable
+            message = "Model ready" if reachable else "Provider not available"
+
+        return CourtHealthResponse(
+            provider=CourtConfig.PROVIDER,
+            model=getattr(provider, "model", getattr(CourtConfig, "OLLAMA_MODEL", "gemma3:4b")),
+            ollama_reachable=reachable,
+            model_installed=model_ok,
+            message=message,
+        )
+    except Exception as e:
+        return CourtHealthResponse(
+            provider=CourtConfig.PROVIDER,
+            model=getattr(CourtConfig, "OLLAMA_MODEL", "gemma3:4b"),
+            ollama_reachable=False,
+            model_installed=False,
+            message=f"Error checking Court health: {e}",
+        )
+
+
+@app.post("/court/compile", response_model=CourtCompileResponse)
+async def court_compile_endpoint(request: CourtCompileRequest):
+    """
+    Stateless endpoint to compile a natural language rule proposal into an engine rule.
+    Does NOT require a game_id, does NOT mutate any game state, and does NOT consume
+    amendment opportunities.
+    """
+    settings_dict = (
+        request.settings.model_dump()
+        if request.settings
+        else {
+            "board_size": 6,
+            "dice_type": "1d6",
+            "win_target": 21,
+            "max_rules": 8,
+            "mode": "draft",
+        }
+    )
+    state = {
+        "settings": settings_dict,
+        "rules": request.accepted_rules or [],
+        "players": [],
+    }
+
+    try:
+        result = compile_amendment(request.text, state, engine_validate_rule)
+    except Exception as e:
+        return CourtCompileResponse(
+            accepted=False,
+            category="court_error",
+            rule=None,
+            error=f"Court compilation failed: {e}",
+        )
+
+    return CourtCompileResponse(
+        accepted=result["accepted"],
+        category=result.get("category"),
+        rule=result.get("rule"),
+        error=result.get("error"),
+    )
 
 
 @app.get("/rulebooks")

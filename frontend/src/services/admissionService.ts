@@ -46,7 +46,7 @@ export async function submitProposalForAdmission(
     return {
       status: 'rejected',
       normalized_rule: trimmed,
-      reason: 'Ollama local model (gemma:2b/7b) unavailable or connection timed out. Match state remains unchanged.',
+      reason: 'The local AI model (Ollama) is unavailable or timed out. Match state remains unchanged.',
       timestamp: Date.now(),
       loophole_risk: { score: 'low', note: 'Model unreachable. Retries safely aborted.' },
     };
@@ -168,11 +168,11 @@ export async function submitProposalForAdmission(
     const match = lower.match(/(\d+)/);
     if (match) {
       const val = parseInt(match[1], 10);
-      if (val < 5 || val > 30) {
+      if (val < 21 || val > 64) {
         return {
           status: 'rejected',
           normalized_rule: `Set win target to ${val} points.`,
-          reason: 'Win target out of bounds (allowed range: 5–30 points).',
+          reason: 'Win target out of bounds (allowed range: 21–64 points).',
           timestamp: Date.now(),
         };
       }
@@ -200,14 +200,14 @@ export async function submitProposalForAdmission(
         conflicts: ['Overrides initial win target setting'],
         loophole_risk: {
           score: 'low',
-          note: 'Valid win target amendment within bounded 5-30 limits.',
+          note: 'Valid win target amendment within bounded 21-64 limits.',
         },
       };
       return {
         status: 'accepted',
         normalized_rule: compiled.normalized_rule,
         compiled_rule: compiled,
-        reason: 'Within permitted win target boundary (5 to 30). Validated against schema 1.0.',
+        reason: 'Within permitted win target boundary (21 to 64). Validated against schema 1.0.',
         timestamp: Date.now(),
       };
     }

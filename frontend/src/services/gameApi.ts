@@ -155,3 +155,51 @@ export async function fetchRulesBook(gameId: string) {
   );
 }
 
+export interface CourtCompileResult {
+  accepted: boolean;
+  category?: 'accepted' | 'not_a_game_rule' | 'invalid_rule' | 'court_error' | null;
+  rule: Record<string, unknown> | null;
+  error: string | null;
+}
+
+export interface CourtHealth {
+  provider: string;
+  model: string;
+  ollama_reachable: boolean;
+  model_installed: boolean;
+  message: string;
+}
+
+export async function submitBackendCompile(
+  text: string,
+  settings?: {
+    board_size?: number;
+    dice_type?: string;
+    win_target?: number;
+    max_rules?: number;
+    mode?: string;
+  },
+  acceptedRules?: Array<Record<string, unknown>>,
+): Promise<CourtCompileResult> {
+  return request<CourtCompileResult>('/court/compile', {
+    method: 'POST',
+    body: JSON.stringify({
+      text,
+      settings: settings
+        ? {
+            board_size: settings.board_size ?? 6,
+            dice_type: settings.dice_type ?? '1d6',
+            win_target: settings.win_target ?? 21,
+            max_rules: settings.max_rules ?? 8,
+            mode: settings.mode ?? 'draft',
+          }
+        : undefined,
+      accepted_rules: acceptedRules ?? [],
+    }),
+  });
+}
+
+export async function fetchCourtHealth(): Promise<CourtHealth> {
+  return request<CourtHealth>('/court/health');
+}
+

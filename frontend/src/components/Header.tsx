@@ -110,6 +110,24 @@ export const Header: React.FC<HeaderProps> = ({
                 {state.config.mode} Mode
               </span>
             )}
+            {import.meta.env.VITE_USE_MOCK_COURT === 'true' && (
+              <span
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '0.68rem',
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: '#fef08a',
+                  color: '#854d0e',
+                  border: '1px solid #eab308',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                MOCK AI
+              </span>
+            )}
           </div>
           <p
             style={{
