@@ -39,8 +39,7 @@ export const ThemePicker: React.FC<ThemePickerProps> = ({ compact = false }) => 
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '5px',
-                padding: '4px 8px',
+                padding: '4px 10px',
                 borderRadius: 'var(--radius-sm)',
                 border: isSelected ? '1px solid var(--accent)' : '1px solid transparent',
                 background: isSelected ? 'var(--surface)' : 'transparent',
@@ -49,25 +48,10 @@ export const ThemePicker: React.FC<ThemePickerProps> = ({ compact = false }) => 
                 fontSize: '0.75rem',
                 cursor: 'pointer',
                 fontFamily: 'var(--font-display)',
+                letterSpacing: '0.04em',
                 transition: 'all 0.15s ease',
               }}
             >
-              {/* Swatch preview dots */}
-              <div style={{ display: 'flex', gap: '2px' }}>
-                {t.swatch.map((color, sIdx) => (
-                  <span
-                    key={sIdx}
-                    style={{
-                      width: '7px',
-                      height: '7px',
-                      borderRadius: '50%',
-                      background: color,
-                      display: 'inline-block',
-                      border: '1px solid rgba(0,0,0,0.15)',
-                    }}
-                  />
-                ))}
-              </div>
               <span>{t.name}</span>
             </button>
           );
@@ -157,25 +141,8 @@ export const ThemePicker: React.FC<ThemePickerProps> = ({ compact = false }) => 
                 </p>
               </div>
 
-              {/* Swatch row */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', gap: '5px' }}>
-                  {t.swatch.map((c, sIdx) => (
-                    <span
-                      key={sIdx}
-                      style={{
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        background: c,
-                        display: 'inline-block',
-                        border: '1px solid rgba(0,0,0,0.2)',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                      }}
-                    />
-                  ))}
-                </div>
-
+              {/* Mode toggle for supported themes */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', minHeight: '26px' }}>
                 {t.supportsMode && isSelected && (
                   <div
                     onClick={(e) => e.stopPropagation()}
