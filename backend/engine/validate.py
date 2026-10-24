@@ -1,4 +1,5 @@
 """Rule validation, caps, max_rules enforcement, amend eligibility."""
+from __future__ import annotations
 
 # --- Constants ---------------------------------------------------------------
 

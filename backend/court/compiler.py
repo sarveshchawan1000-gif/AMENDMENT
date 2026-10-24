@@ -3,6 +3,8 @@ Natural language amendment compiler.
 
 Transforms player-written English text into validated rule JSON using an LLM.
 """
+from __future__ import annotations
+
 
 import json
 import re

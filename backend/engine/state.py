@@ -1,4 +1,5 @@
 """Game state creation, player ranking, leaderboard, and rulebook loading."""
+from __future__ import annotations
 
 import copy
 import uuid

@@ -12,6 +12,7 @@ The engine processes a turn in this order:
 Each rule fires at most once per trigger phase per turn.  Effects never
 re-trigger rules in the same or earlier phases (no chaining).
 """
+from __future__ import annotations
 
 from .board import is_prime
 from .dice import roll_dice
