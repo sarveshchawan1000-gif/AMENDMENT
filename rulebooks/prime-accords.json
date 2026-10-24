@@ -1,0 +1,44 @@
+{
+  "id": "prime-accords",
+  "title": "Prime Tax & Accords",
+  "subtitle": "Arithmetical advantage for prime wanderers",
+  "description": "Landing on prime numbered tiles bestows great prestige, whereas common tiles carry lower reward.",
+  "author": "Chief Magistrate Euclid",
+  "compatible_board_sizes": [36, 64, 100],
+  "rules": [
+    {
+      "id": "PRIME-1",
+      "schema_version": "1.0",
+      "title": "Prime Tile Bounty",
+      "original_text": "When a player lands on a prime-numbered tile, give them 2 extra points.",
+      "normalized_rule": "Landing on prime tile yields +2 score.",
+      "readable_meaning": "On land: If tile is prime (2, 3, 5, 7, 11...), award +2 points to active player.",
+      "trigger": "on_land",
+      "condition": "tile_is_prime",
+      "effect": "add_score",
+      "effect_value": 2,
+      "target": "active_player",
+      "duration": "permanent",
+      "activation_boundary": "immediate",
+      "status": "active",
+      "is_base_rule": false
+    },
+    {
+      "id": "PRIME-2",
+      "schema_version": "1.0",
+      "title": "Even Roll Bonus",
+      "original_text": "If the active player rolls an even number, award 1 bonus point.",
+      "normalized_rule": "Even dice roll yields +1 point.",
+      "readable_meaning": "On roll: If dice sum is even (2, 4, 6, 8...), award +1 point to rolling player.",
+      "trigger": "on_roll",
+      "condition": "roll_is_even",
+      "effect": "add_score",
+      "effect_value": 1,
+      "target": "active_player",
+      "duration": "permanent",
+      "activation_boundary": "immediate",
+      "status": "active",
+      "is_base_rule": false
+    }
+  ]
+}

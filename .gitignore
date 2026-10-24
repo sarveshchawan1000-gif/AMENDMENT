@@ -1,6 +1,9 @@
 node_modules/
+dist/
+build/
 .next/
 __pycache__/
 .venv/
 .env
+.env*.local
 .DS_Store

@@ -1,0 +1,188 @@
+:root {
+  --font-serif: 'Cinzel', Georgia, serif;
+  --font-editorial: 'Newsreader', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Parchment Light Theme */
+  --bg-primary: #F7F4EE;
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: #FFFDF9;
+  --bg-subtle: #EFE9DE;
+  --border-subtle: #E2DACB;
+  --border-strong: #C4B7A2;
+  --text-primary: #1C1A17;
+  --text-secondary: #58534C;
+  --text-muted: #8A8276;
+
+  /* Legal accents */
+  --accent-burgundy: #8B1E1E;
+  --accent-burgundy-light: #FBEBEB;
+  --accent-gold: #C28B38;
+  --accent-gold-subtle: #FDF6E8;
+  --status-admitted: #1A6B42;
+  --status-admitted-bg: #EAF6F0;
+  --status-admitted-border: #9FD6B7;
+  --status-rejected: #9B1D20;
+  --status-rejected-bg: #FDF0F0;
+  --status-rejected-border: #F3B2B4;
+  --status-active: #1D5E91;
+  --status-active-bg: #EDF5FD;
+  --status-expired: #6B7280;
+  --status-expired-bg: #F3F4F6;
+  --status-overridden: #854D0E;
+  --status-overridden-bg: #FEFCE8;
+
+  --board-tile-bg: #FFFFFF;
+  --board-tile-border: #DCD3C4;
+  --board-prime-bg: #FDF7EA;
+  --board-prime-border: #D8B76C;
+  --shadow-subtle: 0 2px 8px rgba(35, 25, 10, 0.05);
+  --shadow-card: 0 4px 16px rgba(35, 25, 10, 0.08);
+  --shadow-elevated: 0 12px 32px rgba(35, 25, 10, 0.12);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+}
+
+[data-theme="dark"] {
+  /* High-Contrast Chamber Dark Theme */
+  --bg-primary: #0F1217;
+  --bg-surface: #181C24;
+  --bg-surface-elevated: #202632;
+  --bg-subtle: #13171F;
+  --border-subtle: #2C3342;
+  --border-strong: #414B60;
+  --text-primary: #F3EFE6;
+  --text-secondary: #ADA598;
+  --text-muted: #736C61;
+
+  --accent-burgundy: #D64545;
+  --accent-burgundy-light: #2A1417;
+  --accent-gold: #E5AC4D;
+  --accent-gold-subtle: #292113;
+  --status-admitted: #34D399;
+  --status-admitted-bg: #0E291E;
+  --status-admitted-border: #1E6B4A;
+  --status-rejected: #F87171;
+  --status-rejected-bg: #2D1416;
+  --status-rejected-border: #7A2428;
+  --status-active: #60A5FA;
+  --status-active-bg: #11253E;
+  --status-expired: #9CA3AF;
+  --status-expired-bg: #1F242F;
+  --status-overridden: #FBBF24;
+  --status-overridden-bg: #29210B;
+
+  --board-tile-bg: #181C24;
+  --board-tile-border: #2C3342;
+  --board-prime-bg: #262116;
+  --board-prime-border: #735721;
+  --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.7);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-subtle);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Stamped Rulings Aesthetic */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-width: 2px;
+  border-style: solid;
+  border-radius: 4px;
+  transform: rotate(-2deg);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  user-select: none;
+}
+
+.stamp-admitted {
+  color: var(--status-admitted);
+  border-color: var(--status-admitted);
+  background: var(--status-admitted-bg);
+}
+
+.stamp-rejected {
+  color: var(--status-rejected);
+  border-color: var(--status-rejected);
+  background: var(--status-rejected-bg);
+}
+
+/* Animations */
+@keyframes diceShake {
+  0% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(-10deg) scale(1.1); }
+  50% { transform: rotate(12deg) scale(1.15); }
+  75% { transform: rotate(-8deg) scale(1.1); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+.animate-dice-shake {
+  animation: diceShake 0.45s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 6px var(--accent-gold)); }
+  50% { opacity: 0.7; filter: drop-shadow(0 0 12px var(--accent-gold)); }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes legalDeliberation {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
+
+.animate-deliberation {
+  animation: legalDeliberation 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
