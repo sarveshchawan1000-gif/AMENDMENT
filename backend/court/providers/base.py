@@ -23,6 +23,11 @@ class ProviderConnectionError(ProviderError):
     pass
 
 
+class ProviderModelNotFoundError(ProviderError):
+    """Raised when the configured model is not installed."""
+    pass
+
+
 class LLMProvider(ABC):
     """
     Abstract base class for LLM providers.
@@ -38,7 +43,7 @@ class LLMProvider(ABC):
         Initialize the provider.
         
         Args:
-            model: Model identifier (e.g., "gemma2:2b", "gemini-2.0-flash-exp")
+            model: Model identifier (e.g., "gemma3:4b", "gemini-2.0-flash-exp")
             timeout: Request timeout in seconds
             temperature: Sampling temperature (0.0 = deterministic, 1.0 = creative)
         """

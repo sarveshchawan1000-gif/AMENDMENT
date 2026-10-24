@@ -2,7 +2,7 @@
 """
 Check if the local Ollama server is running and test a model.
 Usage: python scripts/check_model.py
-Set OLLAMA_MODEL env var to test a specific model (default: gemma4:e4b)
+Set OLLAMA_MODEL env var to test a specific model (default: gemma3:4b)
 """
 
 import os
@@ -13,8 +13,14 @@ import requests
 from typing import Dict, Any
 
 
-OLLAMA_BASE_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-DEFAULT_MODEL = "gemma4:e4b"
+try:
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from backend.court.config import CourtConfig
+    DEFAULT_MODEL = CourtConfig.OLLAMA_MODEL
+    OLLAMA_BASE_URL = CourtConfig.OLLAMA_URL
+except Exception:
+    OLLAMA_BASE_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+    DEFAULT_MODEL = os.environ.get("OLLAMA_MODEL", "gemma3:4b")
 
 
 def list_installed_models() -> list[str]:
