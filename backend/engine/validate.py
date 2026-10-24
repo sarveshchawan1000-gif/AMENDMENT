@@ -106,15 +106,12 @@ def can_amend(state: dict) -> tuple[bool, str | None]:
             return True, None
         return False, "Drafting phase is over"
 
-    if mode == "live":
+    if mode in ("live", "hybrid"):
         amend_every = state["settings"].get("amend_every") or 1
         if state["moves_since_amend"] >= amend_every:
             return True, None
         return False, (f"Amend not available "
                        f"(moves_since_amend={state['moves_since_amend']}, "
                        f"need {amend_every})")
-
-    if mode == "hybrid":
-        return False, "Amendments not allowed in hybrid mode"
 
     return False, f"Unknown mode: {mode!r}"

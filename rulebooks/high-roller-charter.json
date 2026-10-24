@@ -1,0 +1,21 @@
+{
+  "name": "High Roller's Charter",
+  "board_sizes": [6, 8, 10],
+  "rules": [
+    {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          { "name": "roll_is_even" }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Even roll grants +1 extra movement tile."
+    }
+  ]
+}

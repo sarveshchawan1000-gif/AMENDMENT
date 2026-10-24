@@ -1,0 +1,37 @@
+{
+  "name": "The Catch-Up Doctrine",
+  "board_sizes": [6, 8, 10],
+  "rules": [
+    {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          { "name": "is_last" }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Last place player receives +2 points on landing."
+    },
+    {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          { "name": "is_leader" },
+          { "name": "roll_is_even" }
+        ]
+      },
+      "effect": {
+        "type": "steal_score",
+        "amount": 1,
+        "target": "last"
+      },
+      "source": "Leader rolling even transfers 1 point to last place."
+    }
+  ]
+}

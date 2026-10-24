@@ -5,6 +5,8 @@ import {
   submitBackendAmendment,
   passBackendAmendment,
   fetchBackendGame,
+  fetchRulesBook,
+  RulesBookItem,
 } from './services/gameApi';
 import {
   CompiledRule,
@@ -20,6 +22,7 @@ import { Board } from './components/Board';
 import { DiceAndControls } from './components/DiceAndControls';
 import { Leaderboard } from './components/Leaderboard';
 import { RuleLedger } from './components/RuleLedger';
+import { RulesBook } from './components/RulesBook';
 import { ProposalComposer } from './components/ProposalComposer';
 import { AIRulingModal } from './components/AIRulingModal';
 import { RuleAutopsyModal } from './components/RuleAutopsyModal';
@@ -77,11 +80,80 @@ export const App: React.FC = () => {
   const [showRulingModal, setShowRulingModal] = useState<boolean>(false);
   const [showEvaluationModal, setShowEvaluationModal] = useState<boolean>(false);
 
+  // Hybrid Mode Rules Book state
+  const [rulesBook, setRulesBook] = useState<RulesBookItem[]>([]);
+  const [isRulesBookLoading, setIsRulesBookLoading] = useState<boolean>(false);
+  const [rulesBookError, setRulesBookError] = useState<string | null>(null);
+  const [activeRightTab, setActiveRightTab] = useState<'rules_book' | 'ledger'>('rules_book');
+
+  // Load Rules Book from backend
+  const loadHybridRulesBook = async (gameId: string) => {
+    if (!gameId) return;
+    setIsRulesBookLoading(true);
+    setRulesBookError(null);
+    try {
+      const response = await fetchRulesBook(gameId);
+      setRulesBook(response.rules || []);
+    } catch (err) {
+      console.error('Failed to load Rules Book from backend:', err);
+      setRulesBookError('Could not sync Rules Book with backend.');
+    } finally {
+      setIsRulesBookLoading(false);
+    }
+  };
+
+  // Reopen/Restore saved Hybrid Mode game across page refreshes
+  useEffect(() => {
+    const savedGameId = localStorage.getItem('amendment_active_game_id');
+    const savedMode = localStorage.getItem('amendment_active_game_mode');
+    if (savedGameId && savedMode === 'hybrid') {
+      void (async () => {
+        try {
+          const res = await fetchBackendGame(savedGameId);
+          const backendState = res.state;
+          setBackendGameId(savedGameId);
+          const boardSize = (backendState.settings.board_size * backendState.settings.board_size) as 36 | 64 | 100;
+          setState((prev) => ({
+            ...prev,
+            config: {
+              ...prev.config,
+              mode: 'hybrid',
+              boardSize,
+              dice: backendState.settings.dice_type as any,
+              winTarget: backendState.settings.win_target,
+            },
+            players: backendState.players.map((bp) => ({
+              id: bp.id,
+              name: bp.name,
+              color: bp.id === 'P1' || bp.id === 'p1' ? 'var(--p1)' : 'var(--p2)',
+              avatar: bp.id === 'P1' || bp.id === 'p1' ? '⚖️' : '📜',
+              isGemma: false,
+              score: bp.score,
+              position: bp.position,
+              totalAmendmentsPassed: 0,
+            })),
+            activePlayerIndex: backendState.current_player,
+            turnCount: backendState.turn,
+            phase: backendState.phase === 'finished' ? 'game_over' : 'waiting_for_roll',
+          }));
+          void loadHybridRulesBook(savedGameId);
+        } catch (err) {
+          console.warn('Could not restore saved game from backend:', err);
+          localStorage.removeItem('amendment_active_game_id');
+          localStorage.removeItem('amendment_active_game_mode');
+        }
+      })();
+    }
+  }, []);
+
   const handleResetGame = () => {
+    localStorage.removeItem('amendment_active_game_id');
+    localStorage.removeItem('amendment_active_game_mode');
     setBackendGameId(null);
     setAmendmentProposerId(null);
     setShowProposalComposer(false);
     setShowRulingModal(false);
+    setRulesBook([]);
     setState((prev) => ({
       ...prev,
       phase: 'setup',
@@ -117,8 +189,8 @@ export const App: React.FC = () => {
         win_target: config.winTarget,
         mode: config.mode,
         max_rules: 12 as const,
-        ...(config.mode === 'live'
-          ? { amend_every: config.amendmentCadenceMoves as 1 | 2 }
+        ...((config.mode === 'live' || config.mode === 'hybrid')
+          ? { amend_every: (config.amendmentCadenceMoves || 1) as 1 | 2 }
           : {}),
       };
 
@@ -128,6 +200,11 @@ export const App: React.FC = () => {
       );
 
       setBackendGameId(createdGame.game_id);
+      if (config.mode === 'hybrid') {
+        localStorage.setItem('amendment_active_game_id', createdGame.game_id);
+        localStorage.setItem('amendment_active_game_mode', 'hybrid');
+        void loadHybridRulesBook(createdGame.game_id);
+      }
       console.info('Backend game created:', createdGame.game_id);
     } catch (error) {
       if (config.mode === 'draft') {
@@ -270,7 +347,7 @@ export const App: React.FC = () => {
     // 3. current_player hasn't changed (backend kept it the same)
     const amendmentAvailable =
       !winner &&
-      state.config.mode === 'live' &&
+      (state.config.mode === 'live' || state.config.mode === 'hybrid') &&
       backendState.moves_since_amend >= (backendState.settings.amend_every ?? 1) &&
       backendActivePlayerIndex === state.activePlayerIndex;
 
@@ -522,6 +599,11 @@ export const App: React.FC = () => {
         activePlayerIndex: response.state.current_player,
         turnCount: response.state.turn,
       }));
+
+      // In Hybrid mode, immediately reload the authoritative Rules Book from backend
+      if (response.accepted && state.config.mode === 'hybrid' && backendGameId) {
+        void loadHybridRulesBook(backendGameId);
+      }
     } catch (error) {
       const message = error instanceof Error
         ? error.message
@@ -689,10 +771,81 @@ export const App: React.FC = () => {
                 boardSize={state.config.boardSize}
               />
 
-              <RuleLedger
-                rules={state.rules}
-                currentTurn={state.turnCount}
-              />
+              {state.config.mode === 'hybrid' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {/* Mode Tab Switcher */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '6px',
+                      background: 'var(--surface-2)',
+                      padding: '4px',
+                      borderRadius: 'var(--radius)',
+                      border: '1px solid var(--line)',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setActiveRightTab('rules_book')}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: 'none',
+                        background: activeRightTab === 'rules_book' ? 'var(--surface)' : 'transparent',
+                        color: activeRightTab === 'rules_book' ? 'var(--accent)' : 'var(--text-muted)',
+                        fontWeight: activeRightTab === 'rules_book' ? 800 : 600,
+                        fontSize: '0.82rem',
+                        fontFamily: 'var(--font-display)',
+                        cursor: 'pointer',
+                        boxShadow: activeRightTab === 'rules_book' ? 'var(--shadow-sm)' : 'none',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      📖 Rules Book ({rulesBook.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveRightTab('ledger')}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: 'none',
+                        background: activeRightTab === 'ledger' ? 'var(--surface)' : 'transparent',
+                        color: activeRightTab === 'ledger' ? 'var(--accent)' : 'var(--text-muted)',
+                        fontWeight: activeRightTab === 'ledger' ? 800 : 600,
+                        fontSize: '0.82rem',
+                        fontFamily: 'var(--font-display)',
+                        cursor: 'pointer',
+                        boxShadow: activeRightTab === 'ledger' ? 'var(--shadow-sm)' : 'none',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      📜 Rule Ledger ({state.rules.length})
+                    </button>
+                  </div>
+
+                  {activeRightTab === 'rules_book' ? (
+                    <RulesBook
+                      rules={rulesBook}
+                      isLoading={isRulesBookLoading}
+                      error={rulesBookError}
+                      onRefresh={() => backendGameId && void loadHybridRulesBook(backendGameId)}
+                    />
+                  ) : (
+                    <RuleLedger
+                      rules={state.rules}
+                      currentTurn={state.turnCount}
+                    />
+                  )}
+                </div>
+              ) : (
+                <RuleLedger
+                  rules={state.rules}
+                  currentTurn={state.turnCount}
+                />
+              )}
             </div>
           </div>
         )}

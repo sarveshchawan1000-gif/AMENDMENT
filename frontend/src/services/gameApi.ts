@@ -136,7 +136,22 @@ export async function passBackendAmendment(
   );
 }
 
-// TODO: Backend dedicated batch draft endpoint (e.g. POST /game/{id}/draft-batch)
-// To accept, validate, and commit all drafted rules in a single batch transaction.
-// Currently, Draft mode uses frontend admissionService + deterministic draftResolution.
+export interface RulesBookItem {
+  id: string;
+  game_id: string;
+  original_text: string;
+  description: string;
+  compiled_rule: Record<string, unknown>;
+  proposer_id: string;
+  proposer_name: string;
+  created_at: string;
+  status: 'active' | 'inactive' | 'rejected' | 'expired';
+  order: number;
+}
+
+export async function fetchRulesBook(gameId: string) {
+  return request<{ game_id: string; mode: string; rules: RulesBookItem[] }>(
+    `/game/${encodeURIComponent(gameId)}/rules-book`,
+  );
+}
 

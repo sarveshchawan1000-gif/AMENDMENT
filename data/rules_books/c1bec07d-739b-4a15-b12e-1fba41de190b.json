@@ -1,0 +1,68 @@
+{
+  "game_id": "c1bec07d-739b-4a15-b12e-1fba41de190b",
+  "mode": "hybrid",
+  "updated_at": "2026-10-24T23:02:02.966197+00:00",
+  "total_rules": 2,
+  "rules": [
+    {
+      "id": "A1",
+      "game_id": "c1bec07d-739b-4a15-b12e-1fba41de190b",
+      "original_text": "Landing on prime tile yields +2 score.",
+      "description": "Landing on prime tile yields +2 score.",
+      "compiled_rule": {
+        "trigger": "on_land",
+        "condition": {
+          "mode": "all",
+          "predicates": [
+            {
+              "name": "tile_is_prime"
+            }
+          ]
+        },
+        "effect": {
+          "type": "add_score",
+          "amount": 2,
+          "target": "self"
+        },
+        "source": "Landing on prime tile yields +2 score.",
+        "id": "A1",
+        "immutable": false
+      },
+      "proposer_id": "rulebook",
+      "proposer_name": "Prime Tax & Accords",
+      "created_at": "2026-10-24T23:02:02.966124+00:00",
+      "status": "active",
+      "order": 1
+    },
+    {
+      "id": "A2",
+      "game_id": "c1bec07d-739b-4a15-b12e-1fba41de190b",
+      "original_text": "Even dice roll yields +1 point.",
+      "description": "Even dice roll yields +1 point.",
+      "compiled_rule": {
+        "trigger": "on_roll",
+        "condition": {
+          "mode": "all",
+          "predicates": [
+            {
+              "name": "roll_is_even"
+            }
+          ]
+        },
+        "effect": {
+          "type": "add_score",
+          "amount": 1,
+          "target": "self"
+        },
+        "source": "Even dice roll yields +1 point.",
+        "id": "A2",
+        "immutable": false
+      },
+      "proposer_id": "rulebook",
+      "proposer_name": "Prime Tax & Accords",
+      "created_at": "2026-10-24T23:02:02.966124+00:00",
+      "status": "active",
+      "order": 2
+    }
+  ]
+}

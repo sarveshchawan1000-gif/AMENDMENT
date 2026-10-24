@@ -1,0 +1,36 @@
+{
+  "name": "Prime Tax & Accords",
+  "board_sizes": [6, 8, 10],
+  "rules": [
+    {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          { "name": "tile_is_prime" }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Landing on prime tile yields +2 score."
+    },
+    {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          { "name": "roll_is_even" }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Even dice roll yields +1 point."
+    }
+  ]
+}

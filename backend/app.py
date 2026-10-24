@@ -24,6 +24,14 @@ from backend.engine.validate import can_amend, validate_rule as engine_validate_
 # Court imports
 from backend.court.compiler import compile_amendment
 
+# Rules Book persistence imports
+from backend.rules_book import (
+    init_hybrid_rules_book,
+    load_rules_book,
+    add_rule_to_book,
+    save_rules_book,
+)
+
 
 # --- Configuration ---
 
@@ -120,6 +128,27 @@ class AmendResponse(BaseModel):
     rule: Optional[dict]
     error: Optional[str]
     state: dict
+
+
+class RulesBookItemResponse(BaseModel):
+    """Entry in the Hybrid Mode Rules Book."""
+    id: str
+    game_id: str
+    original_text: str
+    description: str
+    compiled_rule: Dict[str, Any]
+    proposer_id: str
+    proposer_name: str
+    created_at: str
+    status: str
+    order: int
+
+
+class RulesBookResponse(BaseModel):
+    """Response for GET /game/{id}/rules-book."""
+    game_id: str
+    mode: str
+    rules: List[RulesBookItemResponse]
 
 
 # --- Helper Functions ---
@@ -331,8 +360,23 @@ async def create_new_game(request: CreateGameRequest):
 
     # Create game state
     try:
+        # Default amend_every for hybrid mode if omitted
+        if settings_dict["mode"] == "hybrid" and not settings_dict.get("amend_every"):
+            settings_dict["amend_every"] = 1
+
         state = create_game(settings_dict, players_list, rulebook)
         game_id = state["game_id"]
+
+        # Initialize persistent Rules Book for Hybrid Mode
+        if state["settings"]["mode"] == "hybrid":
+            rulebook_name = rulebook.get("name", "Curated Rulebook") if rulebook else "Curated Rulebook"
+            state["rules_book"] = init_hybrid_rules_book(
+                game_id=game_id,
+                mode="hybrid",
+                initial_rules=state["rules"],
+                rulebook_name=rulebook_name,
+            )
+
         games[game_id] = state
 
         return CreateGameResponse(game_id=game_id, state=state)
@@ -346,16 +390,17 @@ async def create_new_game(request: CreateGameRequest):
 
 @app.get("/game/{game_id}", response_model=GetStateResponse)
 async def get_game_state(game_id: str):
-    """
-    Get the current state of a game.
-    """
+    """Get the current state of a game."""
     if game_id not in games:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Game {game_id} not found"
         )
 
-    return GetStateResponse(state=games[game_id])
+    state = games[game_id]
+    if state["settings"]["mode"] == "hybrid":
+        state["rules_book"] = load_rules_book(game_id) or []
+    return GetStateResponse(state=state)
 
 
 @app.post("/game/{game_id}/roll", response_model=ExecuteTurnResponse)
@@ -416,8 +461,8 @@ async def execute_player_turn(game_id: str, request: ExecuteTurnRequest):
 
 
 def _consume_live_amendment_opportunity(state: dict) -> None:
-    """Close the current live-mode amendment opportunity."""
-    if state["settings"]["mode"] == "live":
+    """Close the current live/hybrid-mode amendment opportunity."""
+    if state["settings"]["mode"] in ("live", "hybrid"):
         state["moves_since_amend"] = 0
 
 
@@ -454,6 +499,24 @@ async def submit_amendment(game_id: str, request: AmendRequest):
             detail=f"Player {request.player_id} not found in this game"
         )
 
+    # Idempotent retry check for hybrid mode:
+    # If the exact same request was already accepted and added to the Rules Book, return it without duplicating
+    if state["settings"]["mode"] == "hybrid":
+        existing_book = load_rules_book(game_id) or []
+        for existing in existing_book:
+            if (
+                existing.get("proposer_id") == request.player_id
+                and existing.get("original_text", "").strip().lower() == request.text.strip().lower()
+                and existing.get("status") == "active"
+            ):
+                return AmendResponse(
+                    accepted=True,
+                    category="accepted",
+                    rule=existing.get("compiled_rule"),
+                    error=None,
+                    state=state,
+                )
+
     # Check whether an amendment opportunity currently exists.
     allowed, reason = can_amend(state)
     if not allowed:
@@ -465,7 +528,7 @@ async def submit_amendment(game_id: str, request: AmendRequest):
         )
 
     # Only the player who completed the qualifying turn may amend.
-    if state["settings"]["mode"] == "live":
+    if state["settings"]["mode"] in ("live", "hybrid"):
         if request.player_id != state.get("last_actor_id"):
             return AmendResponse(
                 accepted=False,
@@ -513,14 +576,41 @@ async def submit_amendment(game_id: str, request: AmendRequest):
             state=state
         )
 
+    added_rule = state["rules"][-1]
+
+    # For Hybrid Mode, persist to the Rules Book (with rollback if persistence fails)
+    if state["settings"]["mode"] == "hybrid":
+        proposer_name = next(
+            (p["name"] for p in state["players"] if p["id"] == request.player_id),
+            request.player_id,
+        )
+        saved, book_entry, save_err = add_rule_to_book(
+            game_id=game_id,
+            rule=added_rule,
+            original_text=request.text,
+            proposer_id=request.player_id,
+            proposer_name=proposer_name,
+            status="active",
+        )
+        if not saved:
+            # Rollback: remove added rule from state.rules
+            if state["rules"] and state["rules"][-1].get("id") == added_rule.get("id"):
+                state["rules"].pop()
+            _consume_live_amendment_opportunity(state)
+            _advance_turn(state)
+            return AmendResponse(
+                accepted=False,
+                rule=None,
+                error=f"Failed to persist rule to Rules Book: {save_err}",
+                state=state,
+            )
+        state["rules_book"] = load_rules_book(game_id)
+
     # Close the opportunity after successful insertion.
     _consume_live_amendment_opportunity(state)
     
     # Advance to next player after amendment is handled
     _advance_turn(state)
-
-    # Return the rule with id assigned by engine
-    added_rule = state["rules"][-1]
     
     return AmendResponse(
         accepted=True,
@@ -548,8 +638,8 @@ async def pass_amendment(game_id: str, request: ExecuteTurnRequest):
             detail=f"Player {request.player_id} not found in this game",
         )
 
-    if state["settings"]["mode"] != "live":
-        return {"accepted": False, "error": "Passing is only supported in live mode.", "state": state}
+    if state["settings"]["mode"] not in ("live", "hybrid"):
+        return {"accepted": False, "error": "Passing is only supported in live or hybrid mode.", "state": state}
 
     if request.player_id != state.get("last_actor_id"):
         return {"accepted": False, "error": "Only the player who completed the qualifying turn may pass.", "state": state}
@@ -561,6 +651,36 @@ async def pass_amendment(game_id: str, request: ExecuteTurnRequest):
     _consume_live_amendment_opportunity(state)
     _advance_turn(state)
     return {"accepted": True, "error": None, "state": state}
+
+
+@app.get("/game/{game_id}/rules-book", response_model=RulesBookResponse)
+async def get_rules_book_endpoint(game_id: str):
+    """
+    Get the persistent Rules Book for a specific Hybrid Mode game.
+
+    The backend is the authoritative source of truth.
+    Returns clear errors for invalid game IDs or unavailable games.
+    """
+    # Check in-memory games
+    if game_id in games:
+        game_mode = games[game_id]["settings"]["mode"]
+        if game_mode != "hybrid":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Rules Book is only available for Hybrid Mode games (game is in '{game_mode}' mode)"
+            )
+        rules = load_rules_book(game_id) or []
+        return RulesBookResponse(game_id=game_id, mode="hybrid", rules=rules)
+
+    # If game not in memory (e.g. server reload), check if persisted on disk
+    persisted_rules = load_rules_book(game_id)
+    if persisted_rules is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Game {game_id} not found or no Rules Book available"
+        )
+
+    return RulesBookResponse(game_id=game_id, mode="hybrid", rules=persisted_rules)
 
 
 @app.get("/rulebooks")
