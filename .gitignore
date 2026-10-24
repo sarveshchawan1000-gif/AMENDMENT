@@ -1,7 +1,12 @@
 node_modules/
+dist/
+frontend/dist/
+frontend/.vite/
 .next/
 __pycache__/
+.pytest_cache/
 .venv/
 .env
+*.bak
+*.backup*
 .DS_Store
-frontend/dist/
