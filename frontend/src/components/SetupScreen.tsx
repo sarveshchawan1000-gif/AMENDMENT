@@ -15,7 +15,6 @@ import {
   Shuffle,
   ShieldCheck,
   Play,
-  Cpu,
   Info,
 } from 'lucide-react';
 
@@ -41,7 +40,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame }) => {
 
   const [includeGemmaPlayer, setIncludeGemmaPlayer] = useState<boolean>(false);
   const [amendmentCadence, setAmendmentCadence] = useState<number>(1);
-  const [simulateOffline, setSimulateOffline] = useState<boolean>(false);
 
   const selectedRulebook = BUNDLED_RULEBOOKS[selectedRulebookIdx];
 
@@ -109,7 +107,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame }) => {
       selectedRulebookId: mode === 'hybrid' ? selectedRulebook.id : undefined,
       amendmentCadenceMoves: amendmentCadence,
       allowGemmaProposals: true,
-      simulateOfflineModel: simulateOffline,
+      simulateOfflineModel: false,
     };
 
     onStartGame(config);
@@ -179,68 +177,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame }) => {
             The game&apos;s AI judicial pipeline reviews your proposal against deterministic engine limits.
             <strong> There is no voting</strong>: if the proposal passes constitutional scrutiny, the engine enforces it.
           </p>
-        </div>
-
-        {/* Local Gemma Readiness Status Box */}
-        <div
-          style={{
-            marginTop: '20px',
-            background: 'var(--surface-2)',
-            border: `1px solid ${simulateOffline ? 'var(--danger)' : 'var(--ok)'}`,
-            borderRadius: 'var(--radius-sm)',
-            padding: '12px 18px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Cpu
-              size={20}
-              style={{
-                color: simulateOffline ? 'var(--danger)' : 'var(--ok)',
-              }}
-            />
-            <div>
-              <div
-                style={{
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  color: simulateOffline ? 'var(--danger)' : 'var(--ok)',
-                  fontFamily: 'var(--font-display)',
-                }}
-              >
-                {simulateOffline
-                  ? 'Local AI Status: Simulated Offline (Fallback Demonstration)'
-                  : 'Local AI Status: Gemma 2B/7B Ready via Ollama'}
-              </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Deterministic parser and schema 1.0 validator active. Strategic self-benefit rules are admitted.
-              </div>
-            </div>
-          </div>
-
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.78rem',
-              cursor: 'pointer',
-              color: 'var(--text-muted)',
-              fontWeight: 600,
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={simulateOffline}
-              onChange={(e) => setSimulateOffline(e.target.checked)}
-              style={{ cursor: 'pointer', accentColor: 'var(--accent)' }}
-            />
-            Simulate Offline Model Failure
-          </label>
         </div>
       </div>
 
