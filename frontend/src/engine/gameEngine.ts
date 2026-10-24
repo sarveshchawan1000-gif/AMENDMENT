@@ -447,12 +447,22 @@ export function executePlayerRollAndMove(
     });
   }
 
-  // Determine whether this turn permits a proposal
-  // In Live mode: cadence is configured (e.g. every turn or every 2 turns)
+  // --- Per-player move counter ---
+  // Increment this player's personal move count (used for per-player cadence).
+  const updatedMoveCounts: Record<string, number> = {
+    ...currentState.playerMoveCounts,
+    [activePlayer.id]: (currentState.playerMoveCounts[activePlayer.id] ?? 0) + 1,
+  };
+  const thisPlayerMoveCount = updatedMoveCounts[activePlayer.id];
+
+  // Determine whether this turn permits a proposal.
+  // Cadence is checked PER-PLAYER (every N personal moves),
+  // not globally, so every player gets equal proposal opportunities
+  // regardless of how many players are in the game.
   const isCadenceEligible =
     currentState.config.mode === 'live' &&
     !winner &&
-    currentState.turnCount % currentState.config.amendmentCadenceMoves === 0;
+    thisPlayerMoveCount % currentState.config.amendmentCadenceMoves === 0;
 
   const nextPhase = winner
     ? 'game_over'
@@ -479,6 +489,7 @@ export function executePlayerRollAndMove(
       activePlayerIndex: nextActiveIndex,
       currentDiceRoll: diceTotal,
       phase: nextPhase,
+      playerMoveCounts: updatedMoveCounts,
     },
     eventsGenerated: events,
   };

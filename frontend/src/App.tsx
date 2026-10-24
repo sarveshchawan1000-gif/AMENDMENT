@@ -58,6 +58,7 @@ export const App: React.FC = () => {
     isInterpretingRule: false,
     draftTurnIndex: 0,
     draftProposalsRemaining: {},
+    playerMoveCounts: {},
   });
 
   const [isRolling, setIsRolling] = useState<boolean>(false);
@@ -128,6 +129,7 @@ export const App: React.FC = () => {
       isInterpretingRule: false,
       draftTurnIndex: 0,
       draftProposalsRemaining: {},
+      playerMoveCounts: {},
     });
   };
 

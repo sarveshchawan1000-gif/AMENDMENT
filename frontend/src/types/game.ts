@@ -145,4 +145,11 @@ export interface GameState {
   // Draft mode tracking
   draftTurnIndex: number;
   draftProposalsRemaining: Record<string, number>;
+  /**
+   * Per-player personal move counter.
+   * Keyed by player.id. Incremented each time that player completes a move.
+   * Used for cadence checks ("every N moves") so every player gets equal
+   * proposal opportunities regardless of global turn order.
+   */
+  playerMoveCounts: Record<string, number>;
 }

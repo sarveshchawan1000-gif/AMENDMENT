@@ -44,8 +44,30 @@ export const Header: React.FC<HeaderProps> = ({
         boxShadow: 'var(--panel-shadow)',
       }}
     >
-      {/* Brand & Subtitle */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+      {/* Brand & Subtitle — clicking returns to home/setup */}
+      <button
+        type="button"
+        onClick={onResetGame}
+        title="Return to home / setup screen"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '14px',
+          background: 'none',
+          border: 'none',
+          padding: '6px 8px',
+          borderRadius: 'var(--radius)',
+          cursor: 'pointer',
+          transition: 'background 0.15s ease, opacity 0.15s ease',
+          textAlign: 'left',
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-2)';
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.background = 'none';
+        }}
+      >
         <div
           style={{
             width: '40px',
@@ -56,6 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
             alignItems: 'center',
             justifyContent: 'center',
             color: 'var(--accent-contrast)',
+            flexShrink: 0,
           }}
         >
           <Scroll size={22} strokeWidth={2.2} />
@@ -100,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
             The Board Game That Rewrites Its Own Rules
           </p>
         </div>
-      </div>
+      </button>
 
       {/* Match Context / Turn Indicator */}
       {state.phase !== 'setup' && activePlayer && (
