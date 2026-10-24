@@ -78,8 +78,7 @@ def test_create_game_draft_mode(client, deterministic_rng):
     state = data["state"]
     assert state["phase"] == "drafting"
     assert len(state["players"]) == 2
-    assert len(state["rules"]) == 1  # Only R2
-    assert state["rules"][0]["id"] == "R2"
+    assert len(state["rules"]) == 0
     assert state["turn"] == 0
 
 
@@ -260,7 +259,7 @@ def test_submit_amendment_accepted(mock_compile, client, deterministic_rng):
 
     # Verify rule was added to state
     state = data["state"]
-    assert len(state["rules"]) == 2  # R2 + A1
+    assert len(state["rules"]) == 1  # A1
 
 
 @patch('backend.app.compile_amendment')
@@ -295,7 +294,7 @@ def test_submit_amendment_rejected_by_court(mock_compile, client, deterministic_
 
     # Verify no rule was added
     state = data["state"]
-    assert len(state["rules"]) == 1  # Still only R2
+    assert len(state["rules"]) == 0
 
 
 def test_submit_amendment_not_allowed(client, deterministic_rng):
@@ -364,8 +363,8 @@ def test_submit_amendment_max_rules_reached(mock_compile, client, deterministic_
         "error": None
     }
 
-    # Add 7 amendments (max_rules = 8, R2 counts as 1)
-    for i in range(7):
+    # Add 8 amendments (max_rules = 8)
+    for i in range(8):
         response = client.post(
             f"/game/{game_id}/amend",
             json={"player_id": "P1", "text": f"Rule {i+1}"}
@@ -373,10 +372,10 @@ def test_submit_amendment_max_rules_reached(mock_compile, client, deterministic_
         assert response.status_code == 200
         assert response.json()["accepted"] is True
 
-    # 8th amendment should be rejected
+    # 9th amendment should be rejected
     response = client.post(
         f"/game/{game_id}/amend",
-        json={"player_id": "P1", "text": "Rule 8"}
+        json={"player_id": "P1", "text": "Rule 9"}
     )
     assert response.status_code == 200
 

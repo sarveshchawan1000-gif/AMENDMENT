@@ -10,11 +10,39 @@ import json
 import re
 from typing import Dict, Any, Optional, Callable
 
-from backend.court.providers import get_provider, ProviderError, ProviderTimeoutError
+from backend.court.providers import (
+    get_provider,
+    ProviderError,
+    ProviderTimeoutError,
+    ProviderConnectionError,
+    ProviderModelNotFoundError,
+)
 from backend.court.config import CourtConfig
+from backend.engine.validate import (
+    VALID_TRIGGERS,
+    VALID_EFFECT_TYPES,
+    VALID_TARGETS,
+    VALID_PREDICATES,
+    AMOUNT_CAP,
+    WIN_TARGET_MIN,
+    WIN_TARGET_MAX,
+)
 
 
+from backend.court.schema import RULE_JSON_SCHEMA
+
+
+# ---------------------------------------------------------------------------
 # Court prompt template
+# ---------------------------------------------------------------------------
+# Values are derived from validate.py constants at build-time (single source
+# of truth).  The prompt lists the allowed enums so the model knows the
+# vocabulary, but the engine validator is the final authority.
+_TRIGGER_LIST = ", ".join(sorted(VALID_TRIGGERS))
+_EFFECT_LIST = ", ".join(sorted(VALID_EFFECT_TYPES))
+_TARGET_LIST = ", ".join(sorted(VALID_TARGETS))
+_PREDICATE_LIST = ", ".join(sorted(VALID_PREDICATES))
+
 SYSTEM_PROMPT = """You are the Court in AMENDMENT, a board game where players propose rule changes in plain English.
 
 Your role: Convert the player's amendment text into exactly ONE rule object matching this JSON schema.
@@ -22,14 +50,14 @@ Your role: Convert the player's amendment text into exactly ONE rule object matc
 # RULE SCHEMA
 
 A rule has:
-- trigger: when it fires (on_turn_start, on_roll, on_land, win_check)
+- trigger: when it fires ({triggers})
 - condition: when it applies (mode: all|any, predicates: array)
 - effect: what it does (type, amount, target)
 - source: the original text
 
 # VALID ENUMS
 
-Triggers: on_turn_start, on_roll, on_land, win_check
+Triggers: {triggers}
 
 Predicates:
 - is_leader (no args)
@@ -39,14 +67,14 @@ Predicates:
 - score_gt (requires args: {{"value": int}})
 
 Effect types:
-- add_score (amount ±5, target)
-- steal_score (amount abs(±5), target != self)
-- move (amount ±5, target)
+- add_score (amount ±{amount_cap}, target)
+- steal_score (amount abs(±{amount_cap}), target != self)
+- move (amount ±{amount_cap}, target)
 - skip_turn (amount 0, target)
 - reroll (amount 0, target self)
-- set_win_target (amount 21-64, target ignored)
+- set_win_target (amount {win_target_min}-{win_target_max}, target ignored)
 
-Targets: self, leader, last, all_others
+Targets: {targets}
 
 # CURRENT GAME STATE
 
@@ -117,10 +145,10 @@ REJECT: Names specific player (Alice)
 def build_system_prompt(state: Dict[str, Any]) -> str:
     """
     Build the system prompt with game state context.
-    
+
     Args:
         state: Current game state
-        
+
     Returns:
         Formatted system prompt
     """
@@ -131,24 +159,29 @@ def build_system_prompt(state: Dict[str, Any]) -> str:
     win_target = settings.get("win_target", 10)
     max_rules = settings.get("max_rules", 8)
     rule_count = len(state.get("rules", []))
-    
+
     return SYSTEM_PROMPT.format(
         board_size=board_size,
         total_tiles=total_tiles,
         dice_type=dice_type,
         win_target=win_target,
         rule_count=rule_count,
-        max_rules=max_rules
+        max_rules=max_rules,
+        triggers=_TRIGGER_LIST,
+        targets=_TARGET_LIST,
+        amount_cap=AMOUNT_CAP,
+        win_target_min=WIN_TARGET_MIN,
+        win_target_max=WIN_TARGET_MAX,
     )
 
 
 def extract_json(text: str) -> Optional[str]:
     """
     Extract JSON from LLM response, handling markdown code fences.
-    
+
     Args:
         text: LLM response text
-        
+
     Returns:
         Extracted JSON string or None if not found
     """
@@ -156,22 +189,22 @@ def extract_json(text: str) -> Optional[str]:
     fenced_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
     if fenced_match:
         return fenced_match.group(1).strip()
-    
+
     # Try to find raw JSON object
     json_match = re.search(r'\{.*\}', text, re.DOTALL)
     if json_match:
         return json_match.group(0).strip()
-    
+
     return None
 
 
 def parse_json_safely(text: str) -> Optional[Dict[str, Any]]:
     """
     Parse JSON safely without using eval.
-    
+
     Args:
         text: JSON string
-        
+
     Returns:
         Parsed dict or None if invalid
     """
@@ -179,7 +212,6 @@ def parse_json_safely(text: str) -> Optional[Dict[str, Any]]:
         return json.loads(text)
     except json.JSONDecodeError:
         return None
-
 
 
 def _requested_effect_amount(text: str) -> tuple[int, str] | None:
@@ -211,7 +243,13 @@ def _requested_effect_amount(text: str) -> tuple[int, str] | None:
 
 
 def _requested_amount_error(text: str, rule: dict) -> str | None:
-    """Reject capped amounts or an AI-generated amount that differs from the request."""
+    """
+    Reject capped amounts or an AI-generated amount that differs from the request.
+
+    Limits come from validate.py (single source of truth):
+      AMOUNT_CAP = ±5 for regular effects
+      WIN_TARGET_MIN..WIN_TARGET_MAX for set_win_target
+    """
     requested = _requested_effect_amount(text)
     if requested is None:
         return None
@@ -219,12 +257,15 @@ def _requested_amount_error(text: str, rule: dict) -> str | None:
     amount, kind = requested
 
     if kind == "win_target":
-        if not 5 <= amount <= 50:
-            return f"set_win_target {amount} outside 5..50"
+        if not WIN_TARGET_MIN <= amount <= WIN_TARGET_MAX:
+            return (
+                f"set_win_target {amount} outside "
+                f"{WIN_TARGET_MIN}..{WIN_TARGET_MAX}"
+            )
         expected_type = "set_win_target"
     else:
-        if abs(amount) > 5:
-            return f"Effect amount {amount} exceeds ±5 cap"
+        if abs(amount) > AMOUNT_CAP:
+            return f"Effect amount {amount} exceeds ±{AMOUNT_CAP} cap"
 
         effect = rule.get("effect")
         if not isinstance(effect, dict):
@@ -255,61 +296,83 @@ def _requested_amount_error(text: str, rule: dict) -> str | None:
 def compile_amendment(
     text: str,
     state: Dict[str, Any],
-    validate_rule_fn: Optional[Callable[[Dict[str, Any]], tuple[bool, Optional[str]]]] = None
+    validate_rule_fn: Optional[Callable[[Dict[str, Any]], tuple[bool, Optional[str]]]] = None,
 ) -> Dict[str, Any]:
     """
     Compile a natural language amendment into a validated rule.
-    
+
     Args:
         text: Player's amendment text
         state: Current game state
         validate_rule_fn: Optional validation function (for dependency injection in tests)
-        
+
     Returns:
         Court response dict with keys:
         - accepted (bool): True if compilation succeeded
         - rule (dict|None): The compiled rule (without id/immutable) or None
         - error (str|None): Error message if rejected or None
+        - category (str): 'accepted', 'not_a_game_rule', 'invalid_rule', or 'court_error'
     """
     # Build system prompt with game context
     system_prompt = build_system_prompt(state)
-    
+
     # Get the provider
     try:
         provider = get_provider()
     except Exception as e:
         return {
             "accepted": False,
+            "category": "court_error",
             "rule": None,
-            "error": f"Provider initialization failed: {e}"
+            "error": f"Provider initialization failed: {e}",
         }
-    
-    # Check provider availability
-    if not provider.is_available():
+
+    # Check provider availability with specific failure reasons
+    checked = False
+    avail_fn = getattr(provider, "availability_detail", None)
+    if callable(avail_fn):
+        try:
+            res = avail_fn()
+            if isinstance(res, (tuple, list)) and len(res) == 3:
+                reachable, model_ok, detail_msg = res
+                checked = True
+                if not reachable or not model_ok:
+                    return {
+                        "accepted": False,
+                        "category": "court_error",
+                        "rule": None,
+                        "error": detail_msg,
+                    }
+        except Exception:
+            pass
+
+    if not checked and not provider.is_available():
         return {
             "accepted": False,
+            "category": "court_error",
             "rule": None,
-            "error": "Court AI provider is not available"
+            "error": "Court AI provider is not available",
         }
-    
+
     # Attempt generation with retries
     max_retries = CourtConfig.MAX_RETRIES
     last_error = None
-    
+
     for attempt in range(max_retries + 1):
         try:
-            # Generate response
+            # Generate response with structured output schema
             response = provider.generate(
                 prompt=f"Amendment text: {text}",
-                system_prompt=system_prompt
+                system_prompt=system_prompt,
+                json_schema=RULE_JSON_SCHEMA,
             )
-            
-            # Extract JSON
+
+            # Extract JSON (fallback for providers that don't use structured output)
             json_str = extract_json(response)
             if not json_str:
                 last_error = "Could not extract JSON from response"
                 continue
-            
+
             # Parse JSON
             rule = parse_json_safely(json_str)
             if rule is None:
@@ -327,7 +390,7 @@ def compile_amendment(
                     "accepted": False,
                     "category": "not_a_game_rule",
                     "rule": None,
-                    "error": "This is not a game rule. Please propose a rule that changes the gameplay."
+                    "error": "This is not a game rule. Please propose a rule that changes the gameplay.",
                 }
 
             # Ensure the generated rule preserves an explicitly requested effect amount.
@@ -337,12 +400,13 @@ def compile_amendment(
                     "accepted": False,
                     "category": "invalid_rule",
                     "rule": None,
-                    "error": f"Invalid rule: {amount_error}"
+                    "error": f"Invalid rule: {amount_error}",
                 }
 
             # Add source if missing
             if "source" not in rule:
                 rule["source"] = text
+
             # Validate the rule structure using engine validator if provided
             if validate_rule_fn:
                 valid, error_msg = validate_rule_fn(rule)
@@ -351,36 +415,56 @@ def compile_amendment(
                         "accepted": False,
                         "category": "invalid_rule",
                         "rule": None,
-                        "error": f"Invalid rule: {error_msg}"
+                        "error": f"Invalid rule: {error_msg}",
                     }
-            
+
             # Success!
             return {
                 "accepted": True,
                 "category": "accepted",
                 "rule": rule,
-                "error": None
+                "error": None,
             }
-            
+
         except ProviderTimeoutError as e:
             return {
                 "accepted": False,
+                "category": "court_error",
                 "rule": None,
-                "error": f"Court request timed out: {e}"
+                "error": (
+                    "The local AI model (Ollama) is unavailable or timed out. "
+                    "Match state remains unchanged."
+                ),
+            }
+        except ProviderConnectionError as e:
+            return {
+                "accepted": False,
+                "category": "court_error",
+                "rule": None,
+                "error": str(e),
+            }
+        except ProviderModelNotFoundError as e:
+            return {
+                "accepted": False,
+                "category": "court_error",
+                "rule": None,
+                "error": str(e),
             }
         except ProviderError as e:
             return {
                 "accepted": False,
+                "category": "court_error",
                 "rule": None,
-                "error": f"Court provider error: {e}"
+                "error": f"Court provider error: {e}",
             }
         except Exception as e:
             last_error = f"Unexpected error: {e}"
             continue
-    
+
     # All retries exhausted
     return {
         "accepted": False,
+        "category": "court_error",
         "rule": None,
-        "error": f"Failed to compile after {max_retries + 1} attempts. Last error: {last_error}"
+        "error": f"Failed to compile after {max_retries + 1} attempts. Last error: {last_error}",
     }

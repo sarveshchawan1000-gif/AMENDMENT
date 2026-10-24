@@ -53,17 +53,17 @@ class TestValidateRule:
         assert not ok and "5" in err
 
     def test_set_win_target_below_min(self):
-        rule = make_rule("win_check", "set_win_target", 3, "self")
+        rule = make_rule("win_check", "set_win_target", 20, "self")
         ok, err = validate_rule(rule)
-        assert not ok and "5" in err
+        assert not ok and "21" in err
 
     def test_set_win_target_above_max(self):
-        rule = make_rule("win_check", "set_win_target", 55, "self")
+        rule = make_rule("win_check", "set_win_target", 65, "self")
         ok, err = validate_rule(rule)
-        assert not ok and "50" in err
+        assert not ok and "64" in err
 
     def test_set_win_target_at_boundary(self):
-        for v in [5, 50]:
+        for v in [21, 64]:
             rule = make_rule("win_check", "set_win_target", v, "self")
             ok, _ = validate_rule(rule)
             assert ok
@@ -108,16 +108,16 @@ class TestClamps:
         assert clamp_amount(-100) == -5
 
     def test_clamp_win_target_within(self):
-        assert clamp_win_target(10) == 10
-        assert clamp_win_target(15) == 15
+        assert clamp_win_target(30) == 30
+        assert clamp_win_target(40) == 40
 
     def test_clamp_win_target_low(self):
-        assert clamp_win_target(3) == 5
-        assert clamp_win_target(0) == 5
+        assert clamp_win_target(3) == 21
+        assert clamp_win_target(0) == 21
 
     def test_clamp_win_target_high(self):
-        assert clamp_win_target(55) == 50
-        assert clamp_win_target(100) == 50
+        assert clamp_win_target(70) == 64
+        assert clamp_win_target(100) == 64
 
 
 class TestCheckMaxRules:
@@ -126,9 +126,9 @@ class TestCheckMaxRules:
         assert check_max_rules(game) is True
 
     def test_at_limit(self, game):
-        # Fill up to max_rules (8), R2 already = 1
+        # Fill up to max_rules (8)
         from engine.state import add_amendment
-        for i in range(7):
+        for i in range(8):
             add_amendment(game, make_rule("on_land", "move", 1, "self"))
         assert len(game["rules"]) == 8
         assert check_max_rules(game) is False

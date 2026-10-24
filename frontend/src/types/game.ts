@@ -38,7 +38,7 @@ export interface CompiledRule {
   condition: RuleCondition;
   condition_value?: number;
   effect: RuleEffect;
-  effect_value: number; // capped at ±5 points, win_target 5-30
+  effect_value: number; // capped at ±5 points, win_target 21-64 per validate.py
   target: TargetSelector;
   duration: RuleDuration;
   duration_remaining?: number; // turns left before expiration

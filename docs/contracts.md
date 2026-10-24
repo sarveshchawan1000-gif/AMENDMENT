@@ -270,7 +270,7 @@ Evaluated against the acting player's current state at the time the trigger fire
 | `move` | Move resolved targets by `amount` tiles (wrapping). `on_roll` + `self` = movement adjustment; all others = immediate reposition | +/-5 | All resolved targets (add_score-style) or single (steal) |
 | `skip_turn` | Set `skip_next = true` on resolved targets | 0 (unused) | All resolved targets |
 | `reroll` | Replace `last_roll` with a new roll. One per turn max. | 0 (unused) | Ignored (always acting player) |
-| `set_win_target` | Change `settings.win_target` globally | 5..30 | Ignored (global) |
+| `set_win_target` | Change `settings.win_target` globally | 21..64 | Ignored (global) |
 
 ### Effect target semantics
 
@@ -301,7 +301,7 @@ Validated by `validate_rule()` in `backend/engine/validate.py`.
 | `effect.amount` | Must be an integer |
 | `effect.target` | Must be one of: `self`, `leader`, `last`, `all_others` |
 | Amount cap (non-set_win_target) | `abs(amount) <= 5` |
-| Amount cap (set_win_target) | `5 <= amount <= 30` |
+| Amount cap (set_win_target) | `21 <= amount <= 64` |
 | `max_rules` | `len(state.rules) < settings.max_rules` to add a new amendment. R2 counts. R1/R3 do not (hardcoded). |
 | Score floor | All score changes floor at 0 (no negative scores) |
 | Board wrap | Positions wrap: `new_pos = ((pos - 1 + movement) % N) + 1` |

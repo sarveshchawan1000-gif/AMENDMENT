@@ -39,7 +39,7 @@ def test_silently_changed_amount_is_rejected():
 
 
 def test_win_target_above_limit_is_rejected():
-    text = "Set win target to 60"
+    text = "Set win target to 70"
     rule = {
         "effect": {
             "type": "set_win_target",
@@ -48,9 +48,9 @@ def test_win_target_above_limit_is_rejected():
         }
     }
 
-    assert _requested_effect_amount(text) == (60, "win_target")
+    assert _requested_effect_amount(text) == (70, "win_target")
     assert _requested_amount_error(text, rule) == (
-        "set_win_target 60 outside 5..50"
+        "set_win_target 70 outside 21..64"
     )
 
 
