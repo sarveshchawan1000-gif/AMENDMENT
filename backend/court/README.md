@@ -1,5 +1,9 @@
 # Court - AI Rule Compiler
 
+> **Local-First Guarantee**: The default and supported mode for AMENDMENT is local Ollama with `gemma3:4b`.
+> All rule compilation and natural language understanding happens entirely on your local machine.
+> No data leaves your machine unless `COURT_PROVIDER=gemini` is explicitly set in your environment.
+
 The Court transforms plain English amendments into validated JSON rules using LLM providers.
 
 ## Architecture

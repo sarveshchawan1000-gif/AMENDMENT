@@ -1,8 +1,11 @@
 """
 Gemini provider for hosted Google AI inference.
 
-This is a placeholder for future implementation when deploying to production.
-Requires google-generativeai SDK.
+WARNING: This provider is NOT used by default.
+AMENDMENT is a local-first game: all AI evaluation runs locally on your machine
+using Ollama. This provider is a placeholder that is only activated when
+COURT_PROVIDER=gemini is explicitly configured, and would send prompt and game
+data to Google's hosted service.
 """
 
 from typing import Optional, Dict, Any
