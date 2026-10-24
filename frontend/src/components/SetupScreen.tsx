@@ -28,7 +28,7 @@ const DEFAULT_AVATARS = ['⚖️', '📜', '🏛️', '🛡️'];
 export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame }) => {
   const [boardSize, setBoardSize] = useState<BoardSize>(36);
   const [dice, setDice] = useState<DiceType>('1d6');
-  const [winTarget, setWinTarget] = useState<number>(15);
+  const [winTarget, setWinTarget] = useState<number>(50);
   const [mode, setMode] = useState<RuleMode>('live');
   const [selectedRulebookIdx, setSelectedRulebookIdx] = useState<number>(0);
 
@@ -300,7 +300,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame }) => {
           <input
             type="range"
             min={5}
-            max={30}
+            max={50}
             step={1}
             value={winTarget}
             onChange={(e) => setWinTarget(parseInt(e.target.value, 10))}
@@ -312,8 +312,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame }) => {
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
             <span>5 (Blitz)</span>
-            <span>15 (Standard)</span>
-            <span>30 (Marathon)</span>
+            <span>25 (Standard)</span>
+            <span>50 (Marathon)</span>
           </div>
         </div>
       </div>
