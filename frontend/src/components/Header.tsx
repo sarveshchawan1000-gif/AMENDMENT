@@ -240,7 +240,7 @@ export const Header: React.FC<HeaderProps> = ({
           }}
         >
           <TestTube size={14} style={{ color: 'var(--accent-2)' }} />
-          <span>Eval (25)</span>
+          <span>Rules</span>
         </button>
 
         {/* Export JSON Rulebook */}
