@@ -1,7 +1,7 @@
 import React from 'react';
 import { THEMES, ThemeId } from './themes';
 import { useTheme } from './ThemeProvider';
-import { Sun, Moon, Palette } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 
 interface ThemePickerProps {
   compact?: boolean;
@@ -23,8 +23,6 @@ export const ThemePicker: React.FC<ThemePickerProps> = ({ compact = false }) => 
           border: '1px solid var(--line)',
         }}
       >
-        <Palette size={15} style={{ color: 'var(--text-muted)' }} />
-
         {/* Theme Radio Tabs */}
         {(Object.keys(THEMES) as ThemeId[]).map((id) => {
           const t = THEMES[id];
