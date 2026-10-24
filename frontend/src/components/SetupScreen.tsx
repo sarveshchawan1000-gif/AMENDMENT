@@ -173,9 +173,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame }) => {
               lineHeight: 1.6,
             }}
           >
-            In AMENDMENT, you don&apos;t merely roll and move. You propose laws in plain English for your own strategic advantage.
-            The game&apos;s AI judicial pipeline reviews your proposal against deterministic engine limits.
-            <strong> There is no voting</strong>: if the proposal passes constitutional scrutiny, the engine enforces it.
+            Every player is a lawmaker. Propose a rule that tilts the game your way, and if it passes review, it becomes law. <strong>No voting</strong>, only cunning.
           </p>
         </div>
       </div>
@@ -299,8 +297,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame }) => {
           </div>
           <input
             type="range"
-            min={5}
-            max={50}
+            min={1}
+            max={64}
             step={1}
             value={winTarget}
             onChange={(e) => setWinTarget(parseInt(e.target.value, 10))}
@@ -311,9 +309,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame }) => {
             }}
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-            <span>5 (Blitz)</span>
-            <span>25 (Standard)</span>
-            <span>50 (Marathon)</span>
+            <span>1 (Blitz)</span>
+            <span>32 (Standard)</span>
+            <span>64 (Marathon)</span>
           </div>
         </div>
       </div>

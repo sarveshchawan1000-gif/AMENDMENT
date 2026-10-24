@@ -73,7 +73,7 @@ class GameSettings(BaseModel):
     """Game settings for game creation."""
     board_size: int = Field(..., description="Grid dimension: 6, 8, or 10")
     dice_type: str = Field(..., description="Dice configuration: 1d6, 2d6, or 1d12")
-    win_target: int = Field(..., description="Score needed to win (5-30)")
+    win_target: int = Field(..., description="Score needed to win (1-64)")
     mode: str = Field(..., description="Game mode: draft, live, or hybrid")
     max_rules: int = Field(..., description="Maximum rules (8, 12, or 16)")
     amend_every: Optional[int] = Field(None, description="For live mode: amend every N moves (1 or 2)")
@@ -280,10 +280,10 @@ async def create_new_game(request: CreateGameRequest):
             detail="dice_type must be '1d6', '2d6', or '1d12'"
         )
 
-    if not (5 <= settings_dict["win_target"] <= 50):
+    if not (1 <= settings_dict["win_target"] <= 64):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="win_target must be between 5 and 50"
+            detail="win_target must be between 1 and 64"
         )
 
     if settings_dict["mode"] not in ["draft", "live", "hybrid"]:

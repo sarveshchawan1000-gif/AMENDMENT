@@ -135,3 +135,8 @@ export async function passBackendAmendment(
     },
   );
 }
+
+// TODO: Backend dedicated batch draft endpoint (e.g. POST /game/{id}/draft-batch)
+// To accept, validate, and commit all drafted rules in a single batch transaction.
+// Currently, Draft mode uses frontend admissionService + deterministic draftResolution.
+

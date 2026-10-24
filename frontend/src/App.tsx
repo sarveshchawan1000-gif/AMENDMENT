@@ -14,6 +14,7 @@ import {
 import { BASE_RULES, BUNDLED_RULEBOOKS } from './data/rulebooks';
 import { Header } from './components/Header';
 import { SetupScreen } from './components/SetupScreen';
+import { DraftScreen } from './components/DraftScreen';
 import { Board } from './components/Board';
 import { DiceAndControls } from './components/DiceAndControls';
 import { Leaderboard } from './components/Leaderboard';
@@ -127,12 +128,17 @@ export const App: React.FC = () => {
       setBackendGameId(createdGame.game_id);
       console.info('Backend game created:', createdGame.game_id);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Unknown API error';
+      if (config.mode === 'draft') {
+        console.warn('Backend unavailable, proceeding with local Draft flow:', error);
+        setBackendGameId(`draft-local-${Date.now()}`);
+      } else {
+        const message =
+          error instanceof Error ? error.message : 'Unknown API error';
 
-      window.alert(`Could not create game on the backend: ${message}`);
-      console.error('Backend game creation failed:', error);
-      return;
+        window.alert(`Could not create game on the backend: ${message}`);
+        console.error('Backend game creation failed:', error);
+        return;
+      }
     }
 
     const initializedPlayers: Player[] = config.players.map((p) => ({
@@ -160,6 +166,8 @@ export const App: React.FC = () => {
       }
     }
 
+    const initialPhase = config.mode === 'draft' ? 'draft_stage' : 'waiting_for_roll';
+
     setState({
       config,
       turnCount: 1,
@@ -168,7 +176,7 @@ export const App: React.FC = () => {
       rules: initialRules,
       events: [],
       winner: null,
-      phase: 'waiting_for_roll',
+      phase: initialPhase,
       currentDiceRoll: null,
       latestRuling: null,
       selectedAutopsyEvent: null,
@@ -176,6 +184,31 @@ export const App: React.FC = () => {
       draftTurnIndex: 0,
       draftProposalsRemaining: {},
       playerMoveCounts: {},
+    });
+  };
+
+  // Draft mode completion handler
+  const handleDraftStartMatch = (
+    acceptedRules: CompiledRule[],
+    rejectedRules: CompiledRule[],
+  ) => {
+    setState((prev) => {
+      const passedCounts: Record<string, number> = {};
+      acceptedRules.forEach((rule) => {
+        passedCounts[rule.proposer_id] = (passedCounts[rule.proposer_id] || 0) + 1;
+      });
+
+      const updatedPlayers = prev.players.map((p) => ({
+        ...p,
+        totalAmendmentsPassed: (passedCounts[p.id] || 0),
+      }));
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        rules: [...prev.rules, ...acceptedRules, ...rejectedRules],
+        phase: 'waiting_for_roll',
+      };
     });
   };
 
@@ -537,6 +570,13 @@ export const App: React.FC = () => {
       <main style={{ flex: 1, padding: '24px 20px', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>
         {state.phase === 'setup' ? (
           <SetupScreen onStartGame={handleStartGame} />
+        ) : state.phase === 'draft_stage' ? (
+          <DraftScreen
+            config={state.config}
+            players={state.players}
+            onStartMatch={handleDraftStartMatch}
+            onCancelDraft={() => setState((prev) => ({ ...prev, phase: 'setup' }))}
+          />
         ) : (
           <div
             style={{

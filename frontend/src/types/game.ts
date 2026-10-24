@@ -152,4 +152,48 @@ export interface GameState {
    * proposal opportunities regardless of global turn order.
    */
   playerMoveCounts: Record<string, number>;
+  draft?: DraftSlice;
+}
+
+export type DraftLineStatus =
+  | 'pending'
+  | 'checking'
+  | 'accepted'
+  | 'removed-conflict'
+  | 'removed-duplicate'
+  | 'removed-invalid'
+  | 'removed-ledger-full'
+  | 'check-failed';
+
+export interface DraftLineInput {
+  lineNumber: number; // 1-indexed (1..N*3)
+  playerId: string;
+  playerName: string;
+  playerColor: string;
+  playerAvatar: string;
+  text: string;
+}
+
+export interface DraftLineResult {
+  lineNumber: number;
+  playerId: string;
+  playerName: string;
+  playerColor: string;
+  playerAvatar: string;
+  originalText: string;
+  status: DraftLineStatus;
+  reason: string;
+  conflictingLineNumber?: number;
+  compiledRule?: CompiledRule;
+  aiRuling?: AIRuling;
+  rawJson?: Record<string, unknown> | null;
+}
+
+export interface DraftSlice {
+  lines: DraftLineInput[];
+  results: Record<number, DraftLineResult>;
+  isProcessing: boolean;
+  currentCheckingIndex: number;
+  isSubmitted: boolean;
+  isComplete: boolean;
 }

@@ -18,7 +18,7 @@ export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
   isRolling,
 }) => {
   const activePlayer = state.players[state.activePlayerIndex];
-  const isEligibleToPropose = state.phase === 'eligible_for_amendment';
+  const isEligibleToPropose = state.phase === 'eligible_for_amendment' && state.config.mode === 'live';
   const isWaitingForRoll = state.phase === 'waiting_for_roll';
 
   if (!activePlayer) return null;
