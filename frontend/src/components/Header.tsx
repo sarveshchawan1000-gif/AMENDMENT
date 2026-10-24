@@ -6,9 +6,6 @@ import {
   Scroll,
   RotateCcw,
   Download,
-  TestTube,
-  Cpu,
-  WifiOff,
   Sparkles,
 } from 'lucide-react';
 
@@ -186,66 +183,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Compact Theme Picker (only during match setup before game starts) */}
         {state.phase === 'setup' && <ThemePicker compact />}
 
-        {/* Local AI Model Status Pill (only during match setup before game starts) */}
-        {state.phase === 'setup' && (
-          <button
-            onClick={onToggleAiOffline}
-            title={
-              state.config.simulateOfflineModel
-                ? 'Local Gemma AI is SIMULATED OFFLINE. Click to restore online status.'
-                : 'Local Gemma AI running via Ollama. Click to test offline fallback behavior.'
-            }
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 10px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid',
-              borderColor: state.config.simulateOfflineModel ? 'var(--danger)' : 'var(--ok)',
-              background: 'var(--surface-2)',
-              color: state.config.simulateOfflineModel ? 'var(--danger)' : 'var(--ok)',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            {state.config.simulateOfflineModel ? (
-              <>
-                <WifiOff size={14} />
-                <span>Ollama: Offline</span>
-              </>
-            ) : (
-              <>
-                <Cpu size={14} />
-                <span>Gemma: Ready</span>
-              </>
-            )}
-          </button>
-        )}
-
-        {/* Rules Scroll Modal Button */}
-        <button
-          onClick={onOpenEvaluation}
-          title="Open Rules & Constitutional Ordinances"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 12px',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--line)',
-            background: 'var(--surface-2)',
-            color: 'var(--text)',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          <TestTube size={14} style={{ color: 'var(--accent-2)' }} />
-          <span>Rules</span>
-        </button>
+        {/* Gemma: Ready and Rules buttons removed */}
       </div>
     </header>
   );
