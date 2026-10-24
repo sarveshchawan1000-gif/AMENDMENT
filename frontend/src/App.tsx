@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
-  AIRuling,
   CompiledRule,
   GameConfig,
-  GameEventLog,
   GameState,
   Player,
-  ThemeMode,
 } from './types/game';
 import { BASE_RULES, BUNDLED_RULEBOOKS } from './data/rulebooks';
 import { Header } from './components/Header';
@@ -35,8 +32,8 @@ const INITIAL_CONFIG: GameConfig = {
   dice: '1d6',
   winTarget: 15,
   players: [
-    { id: 'p1', name: 'Player 1', color: '#C43D3D', isGemma: false, avatar: '⚖️' },
-    { id: 'p2', name: 'Player 2', color: '#2B6CB0', isGemma: false, avatar: '📜' },
+    { id: 'p1', name: 'Player 1', color: 'var(--p1)', isGemma: false, avatar: '⚖️' },
+    { id: 'p2', name: 'Player 2', color: 'var(--p2)', isGemma: false, avatar: '📜' },
   ],
   mode: 'live',
   theme: 'light',
@@ -46,7 +43,6 @@ const INITIAL_CONFIG: GameConfig = {
 };
 
 export const App: React.FC = () => {
-  const [theme, setTheme] = useState<ThemeMode>('light');
   const [state, setState] = useState<GameState>({
     config: INITIAL_CONFIG,
     turnCount: 1,
@@ -68,20 +64,6 @@ export const App: React.FC = () => {
   const [showProposalComposer, setShowProposalComposer] = useState<boolean>(false);
   const [showRulingModal, setShowRulingModal] = useState<boolean>(false);
   const [showEvaluationModal, setShowEvaluationModal] = useState<boolean>(false);
-
-  // Sync data-theme attribute on document root
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
-
-  const handleThemeToggle = () => {
-    const nextTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(nextTheme);
-    setState((prev) => ({
-      ...prev,
-      config: { ...prev.config, theme: nextTheme },
-    }));
-  };
 
   const handleResetGame = () => {
     setState((prev) => ({
@@ -119,7 +101,7 @@ export const App: React.FC = () => {
     if (config.mode === 'hybrid' && config.selectedRulebookId) {
       const book = BUNDLED_RULEBOOKS.find((b) => b.id === config.selectedRulebookId);
       if (book) {
-        const bundledCompiled: CompiledRule[] = book.rules.map((r, idx) => ({
+        const bundledCompiled: CompiledRule[] = book.rules.map((r) => ({
           ...r,
           proposer_id: 'rulebook',
           proposer_name: book.title,
@@ -223,7 +205,7 @@ export const App: React.FC = () => {
           updatedPlayers[pIdx].totalAmendmentsPassed += 1;
         }
       } else {
-        // Record rejected rule in history for transparency (PRD Section 9: "A rejected proposal is recorded in match history")
+        // Record rejected rule in history for transparency
         const rejectedRule: CompiledRule = {
           id: `REJ-${Date.now().toString().slice(-4)}`,
           schema_version: '1.0',
@@ -294,11 +276,10 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', color: 'var(--text)' }}>
       {/* Top Header */}
       <Header
         state={state}
-        onThemeToggle={handleThemeToggle}
         onResetGame={handleResetGame}
         onOpenEvaluation={() => setShowEvaluationModal(true)}
         onExportRulebook={handleExportRulebook}
@@ -308,11 +289,7 @@ export const App: React.FC = () => {
       {/* Main Container */}
       <main style={{ flex: 1, padding: '24px 20px', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>
         {state.phase === 'setup' ? (
-          <SetupScreen
-            onStartGame={handleStartGame}
-            currentTheme={theme}
-            onThemeToggle={handleThemeToggle}
-          />
+          <SetupScreen onStartGame={handleStartGame} />
         ) : (
           <div
             style={{

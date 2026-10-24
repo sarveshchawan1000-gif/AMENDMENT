@@ -1,7 +1,7 @@
 import React from 'react';
 import { BoardSize, Player } from '../types/game';
 import { isPrime } from '../services/admissionService';
-import { Sparkles, Flag, Crown, Compass } from 'lucide-react';
+import { Compass } from 'lucide-react';
 
 interface BoardProps {
   boardSize: BoardSize;
@@ -18,8 +18,7 @@ export const Board: React.FC<BoardProps> = ({
   const gridDimension = boardSize === 36 ? 6 : boardSize === 64 ? 8 : 10;
 
   // Build snake path (boustrophedon) grid of tile numbers
-  // Row 0 is at bottom (or top). Let's lay it out so Tile 1 starts at bottom-left, snaking upward!
-  // This classic board game layout makes progress feel like climbing to the peak.
+  // Row 0 is at bottom, starting at Tile 1 and snaking upward
   const gridRows: number[][] = [];
   let currentTile = 1;
 
@@ -40,12 +39,9 @@ export const Board: React.FC<BoardProps> = ({
 
   return (
     <div
+      className="panel"
       style={{
-        background: 'var(--bg-surface)',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border-subtle)',
         padding: '20px',
-        boxShadow: 'var(--shadow-card)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -62,43 +58,45 @@ export const Board: React.FC<BoardProps> = ({
           gap: '10px',
           marginBottom: '16px',
           paddingBottom: '12px',
-          borderBottom: '1px solid var(--border-subtle)',
+          borderBottom: '1px solid var(--line)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Compass size={18} style={{ color: 'var(--accent-burgundy)' }} />
-          <span style={{ fontFamily: 'var(--font-serif)', fontWeight: 700, fontSize: '0.95rem' }}>
+          <Compass size={18} style={{ color: 'var(--accent)' }} />
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)' }}>
             The Assembly Floor ({boardSize} Tiles)
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <span
               style={{
                 width: '12px',
                 height: '12px',
-                borderRadius: '3px',
-                background: 'var(--board-prime-bg)',
-                border: '1px solid var(--board-prime-border)',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--tile-prime)',
+                border: '1px solid var(--accent-2)',
                 display: 'inline-block',
               }}
             />
             <span>Prime Tile (★)</span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span
-              style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                border: `2px solid ${activePlayer.color}`,
-                display: 'inline-block',
-              }}
-            />
-            <span>Active Token</span>
-          </div>
+          {activePlayer && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span
+                style={{
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '50%',
+                  border: `2px solid ${activePlayer.color}`,
+                  display: 'inline-block',
+                }}
+              />
+              <span>Active Token</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -113,45 +111,38 @@ export const Board: React.FC<BoardProps> = ({
           aspectRatio: '1 / 1',
         }}
       >
-        {gridRows.map((row, rIdx) =>
+        {gridRows.map((row) =>
           row.map((tileNum) => {
             const isPrimeTile = isPrime(tileNum);
             const isStart = tileNum === 1;
             const isFinish = tileNum === boardSize;
             const playersOnTile = players.filter((p) => p.position === tileNum);
-            const hasActivePlayer = playersOnTile.some((p) => p.id === activePlayer.id);
+            const hasActivePlayer = activePlayer ? playersOnTile.some((p) => p.id === activePlayer.id) : false;
+
+            // Alternating tiles --tile-a and --tile-b; prime tiles use --tile-prime
+            const background = isPrimeTile
+              ? 'var(--tile-prime)'
+              : tileNum % 2 === 0
+              ? 'var(--tile-b)'
+              : 'var(--tile-a)';
 
             return (
               <div
                 key={tileNum}
+                className={`tile ${hasActivePlayer ? 'tile-active' : ''}`}
                 style={{
                   position: 'relative',
-                  borderRadius: 'var(--radius-sm)',
-                  background: isPrimeTile
-                    ? 'var(--board-prime-bg)'
-                    : isStart
-                    ? 'var(--status-admitted-bg)'
-                    : isFinish
-                    ? 'var(--accent-burgundy-light)'
-                    : 'var(--board-tile-bg)',
+                  background,
                   border: hasActivePlayer
                     ? `2.5px solid ${activePlayer.color}`
                     : isPrimeTile
-                    ? '1.5px solid var(--board-prime-border)'
-                    : isStart
-                    ? '1.5px solid var(--status-admitted-border)'
-                    : isFinish
-                    ? '1.5px solid var(--status-rejected-border)'
-                    : '1px solid var(--board-tile-border)',
-                  boxShadow: hasActivePlayer
-                    ? `0 0 10px ${activePlayer.color}55`
-                    : '0 1px 3px rgba(0,0,0,0.03)',
+                    ? '1.5px solid var(--accent-2)'
+                    : '1px solid var(--line)',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
                   padding: boardSize === 100 ? '2px' : '4px',
                   userSelect: 'none',
-                  transition: 'all 0.2s ease',
                   overflow: 'hidden',
                 }}
               >
@@ -166,13 +157,13 @@ export const Board: React.FC<BoardProps> = ({
                 >
                   <span
                     style={{
-                      fontFamily: 'var(--font-mono)',
+                      fontFamily: 'monospace',
                       fontSize: boardSize === 100 ? '0.62rem' : boardSize === 64 ? '0.72rem' : '0.82rem',
                       fontWeight: 700,
                       color: hasActivePlayer
                         ? activePlayer.color
                         : isPrimeTile
-                        ? 'var(--accent-gold)'
+                        ? 'var(--accent-2)'
                         : 'var(--text-muted)',
                     }}
                   >
@@ -184,7 +175,7 @@ export const Board: React.FC<BoardProps> = ({
                       title="Prime numbered tile (triggers prime tile bounties)"
                       style={{
                         fontSize: boardSize === 100 ? '0.55rem' : '0.68rem',
-                        color: 'var(--accent-gold)',
+                        color: 'var(--accent-2)',
                         fontWeight: 900,
                       }}
                     >
@@ -194,7 +185,7 @@ export const Board: React.FC<BoardProps> = ({
                   {isStart && (
                     <span
                       title="Assembly Start"
-                      style={{ fontSize: '0.62rem', color: 'var(--status-admitted)', fontWeight: 800 }}
+                      style={{ fontSize: '0.62rem', color: 'var(--ok)', fontWeight: 800 }}
                     >
                       START
                     </span>
@@ -202,7 +193,7 @@ export const Board: React.FC<BoardProps> = ({
                   {isFinish && (
                     <span
                       title="Senate Chamber"
-                      style={{ fontSize: '0.62rem', color: 'var(--accent-burgundy)', fontWeight: 800 }}
+                      style={{ fontSize: '0.62rem', color: 'var(--accent)', fontWeight: 800 }}
                     >
                       FINISH
                     </span>
@@ -221,7 +212,7 @@ export const Board: React.FC<BoardProps> = ({
                   }}
                 >
                   {playersOnTile.map((p) => {
-                    const isActive = p.id === activePlayer.id;
+                    const isActive = activePlayer && p.id === activePlayer.id;
                     return (
                       <div
                         key={p.id}
@@ -231,16 +222,15 @@ export const Board: React.FC<BoardProps> = ({
                           height: boardSize === 100 ? '18px' : boardSize === 64 ? '22px' : '26px',
                           borderRadius: '50%',
                           background: p.color,
-                          color: '#FFFFFF',
+                          color: 'var(--accent-contrast)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontSize: boardSize === 100 ? '0.6rem' : '0.72rem',
                           fontWeight: 800,
-                          boxShadow: isActive ? '0 0 8px rgba(0,0,0,0.4)' : '0 1px 3px rgba(0,0,0,0.3)',
-                          border: isActive ? '2px solid #FFFFFF' : '1px solid rgba(255,255,255,0.7)',
+                          border: isActive ? '2px solid var(--accent-contrast)' : '1px solid rgba(255,255,255,0.7)',
                           transform: isActive ? 'scale(1.1)' : 'scale(1)',
-                          transition: 'transform 0.2s ease',
+                          transition: 'transform 0.15s ease',
                           zIndex: isActive ? 2 : 1,
                         }}
                       >

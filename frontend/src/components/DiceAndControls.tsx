@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { DiceType, GameState } from '../types/game';
-import { Dices, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import React from 'react';
+import { GameState } from '../types/game';
+import { Dices, ArrowRight, Sparkles } from 'lucide-react';
 
 interface DiceAndControlsProps {
   state: GameState;
@@ -21,14 +21,13 @@ export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
   const isEligibleToPropose = state.phase === 'eligible_for_amendment';
   const isWaitingForRoll = state.phase === 'waiting_for_roll';
 
+  if (!activePlayer) return null;
+
   return (
     <div
+      className="panel"
       style={{
-        background: 'var(--bg-surface)',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border-subtle)',
         padding: '18px 22px',
-        boxShadow: 'var(--shadow-card)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -44,13 +43,12 @@ export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
             height: '46px',
             borderRadius: '50%',
             background: activePlayer.color,
-            color: '#fff',
+            color: 'var(--accent-contrast)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '1.4rem',
-            boxShadow: `0 3px 12px ${activePlayer.color}66`,
-            border: '2px solid #fff',
+            border: '2px solid var(--accent-contrast)',
           }}
         >
           {activePlayer.avatar}
@@ -60,10 +58,10 @@ export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span
               style={{
-                fontFamily: 'var(--font-serif)',
+                fontFamily: 'var(--font-display)',
                 fontSize: '1.1rem',
                 fontWeight: 800,
-                color: 'var(--text-primary)',
+                color: 'var(--text)',
               }}
             >
               {activePlayer.name}&apos;s Turn
@@ -73,9 +71,10 @@ export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
                 style={{
                   fontSize: '0.68rem',
                   padding: '2px 8px',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'var(--accent-gold-subtle)',
-                  color: 'var(--accent-gold)',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--surface-2)',
+                  color: 'var(--accent-2)',
+                  border: '1px solid var(--accent-2)',
                   fontWeight: 700,
                 }}
               >
@@ -84,7 +83,7 @@ export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
             )}
           </div>
 
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
             {isWaitingForRoll && 'Roll the dice to advance your legislator token.'}
             {isRolling && 'Rolling the assembly dice...'}
             {isEligibleToPropose && 'Cadence window open! You may submit a new amendment.'}
@@ -104,19 +103,19 @@ export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
               alignItems: 'center',
               gap: '8px',
               padding: '8px 14px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--bg-subtle)',
-              border: '1px solid var(--border-strong)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--line)',
             }}
           >
-            <Dices size={24} style={{ color: 'var(--accent-burgundy)' }} />
+            <Dices size={24} style={{ color: 'var(--accent)' }} />
             <div style={{ textAlign: 'center' }}>
               <div
                 style={{
-                  fontFamily: 'var(--font-mono)',
+                  fontFamily: 'monospace',
                   fontSize: '1.3rem',
                   fontWeight: 800,
-                  color: 'var(--text-primary)',
+                  color: 'var(--text)',
                   lineHeight: 1,
                 }}
               >
@@ -135,21 +134,11 @@ export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
             type="button"
             onClick={onRollDice}
             disabled={isRolling}
+            className="btn btn-accent"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
               padding: '12px 28px',
-              borderRadius: 'var(--radius-full)',
-              background: 'linear-gradient(135deg, var(--accent-burgundy), #5A1212)',
-              color: '#FAF7F2',
-              fontFamily: 'var(--font-serif)',
-              fontWeight: 800,
               fontSize: '0.95rem',
               letterSpacing: '0.06em',
-              border: 'none',
-              cursor: isRolling ? 'not-allowed' : 'pointer',
-              boxShadow: '0 4px 14px rgba(139, 30, 30, 0.3)',
               opacity: isRolling ? 0.7 : 1,
             }}
           >
@@ -164,21 +153,11 @@ export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
             <button
               type="button"
               onClick={onOpenProposalComposer}
+              className="btn btn-accent"
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
                 padding: '12px 22px',
-                borderRadius: 'var(--radius-full)',
-                background: 'linear-gradient(135deg, var(--accent-gold), #9A6B22)',
-                color: '#FAF7F2',
-                fontFamily: 'var(--font-serif)',
-                fontWeight: 800,
                 fontSize: '0.9rem',
                 letterSpacing: '0.04em',
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 4px 14px rgba(194, 139, 56, 0.35)',
               }}
             >
               <Sparkles size={16} />
@@ -188,18 +167,10 @@ export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
             <button
               type="button"
               onClick={onPassTurn}
+              className="btn btn-secondary"
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
                 padding: '11px 18px',
-                borderRadius: 'var(--radius-full)',
-                background: 'var(--bg-subtle)',
-                color: 'var(--text-secondary)',
                 fontSize: '0.85rem',
-                fontWeight: 700,
-                border: '1px solid var(--border-strong)',
-                cursor: 'pointer',
               }}
             >
               <span>Pass Turn</span>

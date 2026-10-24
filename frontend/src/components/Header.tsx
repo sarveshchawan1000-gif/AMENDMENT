@@ -1,9 +1,9 @@
 import React from 'react';
-import { GameState, ThemeMode } from '../types/game';
+import { GameState } from '../types/game';
+import { useTheme } from '../theme/ThemeProvider';
+import { ThemePicker } from '../theme/ThemePicker';
 import {
   Scroll,
-  Sun,
-  Moon,
   RotateCcw,
   Download,
   TestTube,
@@ -14,7 +14,6 @@ import {
 
 interface HeaderProps {
   state: GameState;
-  onThemeToggle: () => void;
   onResetGame: () => void;
   onOpenEvaluation: () => void;
   onExportRulebook: () => void;
@@ -23,42 +22,40 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   state,
-  onThemeToggle,
   onResetGame,
   onOpenEvaluation,
   onExportRulebook,
   onToggleAiOffline,
 }) => {
   const activePlayer = state.players[state.activePlayerIndex];
-  const isDark = state.config.theme === 'dark';
+  const { theme } = useTheme();
 
   return (
     <header
       style={{
-        borderBottom: '1px solid var(--border-subtle)',
-        background: 'var(--bg-surface)',
+        borderBottom: '1px solid var(--line)',
+        background: 'var(--surface)',
         padding: '12px 24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '12px',
-        boxShadow: 'var(--shadow-subtle)',
+        boxShadow: 'var(--panel-shadow)',
       }}
     >
       {/* Brand & Subtitle */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
         <div
           style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: 'var(--radius-md)',
-            background: 'linear-gradient(135deg, var(--accent-burgundy), #5A1212)',
+            width: '40px',
+            height: '40px',
+            borderRadius: 'var(--radius)',
+            background: 'var(--accent)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#FAF7F2',
-            boxShadow: '0 2px 8px rgba(139, 30, 30, 0.25)',
+            color: 'var(--accent-contrast)',
           }}
         >
           <Scroll size={22} strokeWidth={2.2} />
@@ -67,24 +64,24 @@ export const Header: React.FC<HeaderProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h1
               style={{
-                fontFamily: 'var(--font-serif)',
+                fontFamily: 'var(--font-display)',
                 fontSize: '1.25rem',
                 fontWeight: 800,
                 letterSpacing: '0.08em',
-                color: 'var(--text-primary)',
+                color: 'var(--text)',
               }}
             >
               AMENDMENT
             </h1>
             <span
               style={{
-                fontFamily: 'var(--font-mono)',
+                fontFamily: 'var(--font-display)',
                 fontSize: '0.68rem',
                 padding: '2px 8px',
-                borderRadius: 'var(--radius-full)',
-                background: 'var(--accent-gold-subtle)',
-                color: 'var(--accent-gold)',
-                border: '1px solid var(--accent-gold)',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--surface-2)',
+                color: 'var(--accent-2)',
+                border: '1px solid var(--accent-2)',
                 fontWeight: 700,
                 textTransform: 'uppercase',
               }}
@@ -94,9 +91,9 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <p
             style={{
-              fontFamily: 'var(--font-editorial)',
+              fontFamily: 'var(--font-body)',
               fontSize: '0.85rem',
-              color: 'var(--text-secondary)',
+              color: 'var(--text-muted)',
               fontStyle: 'italic',
             }}
           >
@@ -106,31 +103,31 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Match Context / Turn Indicator */}
-      {state.phase !== 'setup' && (
+      {state.phase !== 'setup' && activePlayer && (
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            background: 'var(--bg-subtle)',
+            background: 'var(--surface-2)',
             padding: '6px 16px',
-            borderRadius: 'var(--radius-full)',
-            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius)',
+            border: '1px solid var(--line)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
               TURN {state.turnCount}
             </span>
-            <span style={{ color: 'var(--border-strong)' }}>•</span>
+            <span style={{ color: 'var(--line)' }}>•</span>
             <div
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
                 padding: '3px 10px',
-                borderRadius: 'var(--radius-full)',
-                background: 'var(--bg-surface)',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--surface)',
                 border: `2px solid ${activePlayer.color}`,
               }}
             >
@@ -142,25 +139,28 @@ export const Header: React.FC<HeaderProps> = ({
                   background: activePlayer.color,
                 }}
               />
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text)' }}>
                 {activePlayer.name}
               </span>
               {activePlayer.isGemma && (
-                <Sparkles size={13} style={{ color: 'var(--accent-gold)' }} />
+                <Sparkles size={13} style={{ color: 'var(--accent-2)' }} />
               )}
             </div>
           </div>
 
-          <span style={{ color: 'var(--border-strong)' }}>•</span>
+          <span style={{ color: 'var(--line)' }}>•</span>
 
-          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-            Target: <strong style={{ color: 'var(--accent-gold)' }}>{state.config.winTarget} pts</strong>
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            Target: <strong style={{ color: 'var(--accent-2)' }}>{state.config.winTarget} pts</strong>
           </span>
         </div>
       )}
 
-      {/* Global Actions and Toggles */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {/* Global Actions and Theme Picker */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        {/* Compact Theme Picker */}
+        <ThemePicker compact />
+
         {/* Local AI Model Status Pill */}
         <button
           onClick={onToggleAiOffline}
@@ -173,33 +173,27 @@ export const Header: React.FC<HeaderProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '6px 12px',
-            borderRadius: 'var(--radius-md)',
+            padding: '6px 10px',
+            borderRadius: 'var(--radius-sm)',
             border: '1px solid',
-            borderColor: state.config.simulateOfflineModel
-              ? 'var(--status-rejected-border)'
-              : 'var(--status-admitted-border)',
-            background: state.config.simulateOfflineModel
-              ? 'var(--status-rejected-bg)'
-              : 'var(--status-admitted-bg)',
-            color: state.config.simulateOfflineModel
-              ? 'var(--status-rejected)'
-              : 'var(--status-admitted)',
+            borderColor: state.config.simulateOfflineModel ? 'var(--danger)' : 'var(--ok)',
+            background: 'var(--surface-2)',
+            color: state.config.simulateOfflineModel ? 'var(--danger)' : 'var(--ok)',
             fontSize: '0.75rem',
             fontWeight: 600,
             cursor: 'pointer',
-            transition: 'all 0.2s ease',
+            transition: 'all 0.15s ease',
           }}
         >
           {state.config.simulateOfflineModel ? (
             <>
               <WifiOff size={14} />
-              <span>Ollama: Offline (Mock)</span>
+              <span>Ollama: Offline</span>
             </>
           ) : (
             <>
               <Cpu size={14} />
-              <span>Gemma AI: Ready</span>
+              <span>Gemma: Ready</span>
             </>
           )}
         </button>
@@ -212,18 +206,18 @@ export const Header: React.FC<HeaderProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '6px 12px',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-subtle)',
-            background: 'var(--bg-surface)',
-            color: 'var(--text-primary)',
-            fontSize: '0.78rem',
+            padding: '6px 10px',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--line)',
+            background: 'var(--surface-2)',
+            color: 'var(--text)',
+            fontSize: '0.75rem',
             fontWeight: 600,
             cursor: 'pointer',
           }}
         >
-          <TestTube size={14} style={{ color: 'var(--accent-gold)' }} />
-          <span>Eval Suite (25)</span>
+          <TestTube size={14} style={{ color: 'var(--accent-2)' }} />
+          <span>Eval (25)</span>
         </button>
 
         {/* Export JSON Rulebook */}
@@ -236,39 +230,19 @@ export const Header: React.FC<HeaderProps> = ({
               alignItems: 'center',
               gap: '6px',
               padding: '6px 10px',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-subtle)',
-              background: 'var(--bg-surface)',
-              color: 'var(--text-primary)',
-              fontSize: '0.78rem',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--line)',
+              background: 'var(--surface-2)',
+              color: 'var(--text)',
+              fontSize: '0.75rem',
               fontWeight: 600,
               cursor: 'pointer',
             }}
           >
             <Download size={14} />
-            <span>Export Rules</span>
+            <span>Export</span>
           </button>
         )}
-
-        {/* Theme Toggle */}
-        <button
-          onClick={onThemeToggle}
-          title={isDark ? 'Switch to Parchment Light Theme' : 'Switch to Chamber Dark Theme'}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '34px',
-            height: '34px',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-subtle)',
-            background: 'var(--bg-surface)',
-            color: 'var(--text-primary)',
-            cursor: 'pointer',
-          }}
-        >
-          {isDark ? <Sun size={16} /> : <Moon size={16} />}
-        </button>
 
         {/* Reset / New Game */}
         <button
@@ -278,12 +252,12 @@ export const Header: React.FC<HeaderProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
-            padding: '6px 12px',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-strong)',
-            background: 'var(--bg-surface)',
-            color: 'var(--accent-burgundy)',
-            fontSize: '0.78rem',
+            padding: '6px 10px',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--danger)',
+            background: 'var(--surface-2)',
+            color: 'var(--danger)',
+            fontSize: '0.75rem',
             fontWeight: 700,
             cursor: 'pointer',
           }}

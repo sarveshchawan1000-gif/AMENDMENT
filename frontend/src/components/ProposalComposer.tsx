@@ -1,15 +1,11 @@
 import React, { useState } from 'react';
 import { Player } from '../types/game';
 import { STARTER_PROPOSALS } from '../data/rulebooks';
+import { useTheme } from '../theme/ThemeProvider';
 import {
-  Sparkles,
   Send,
   X,
   ShieldCheck,
-  AlertCircle,
-  HelpCircle,
-  Clock,
-  ThumbsUp,
 } from 'lucide-react';
 
 interface ProposalComposerProps {
@@ -29,6 +25,7 @@ export const ProposalComposer: React.FC<ProposalComposerProps> = ({
   onCancel,
   isInterpreting,
 }) => {
+  const { theme } = useTheme();
   const [proposalText, setProposalText] = useState('');
 
   const charsRemaining = MAX_CHAR_LIMIT - proposalText.length;
@@ -50,7 +47,7 @@ export const ProposalComposer: React.FC<ProposalComposerProps> = ({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0, 0, 0, 0.65)',
+        background: 'rgba(0, 0, 0, 0.7)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -59,14 +56,11 @@ export const ProposalComposer: React.FC<ProposalComposerProps> = ({
       }}
     >
       <div
+        className="panel"
         style={{
-          background: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-strong)',
           maxWidth: '640px',
           width: '100%',
           padding: '28px',
-          boxShadow: 'var(--shadow-elevated)',
           position: 'relative',
         }}
       >
@@ -79,12 +73,12 @@ export const ProposalComposer: React.FC<ProposalComposerProps> = ({
                 height: '38px',
                 borderRadius: '50%',
                 background: proposer.color,
-                color: '#fff',
+                color: 'var(--accent-contrast)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '1.2rem',
-                border: '2px solid #fff',
+                border: '2px solid var(--accent-contrast)',
               }}
             >
               {proposer.avatar}
@@ -93,29 +87,31 @@ export const ProposalComposer: React.FC<ProposalComposerProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h3
                   style={{
-                    fontFamily: 'var(--font-serif)',
+                    fontFamily: 'var(--font-display)',
                     fontSize: '1.2rem',
                     fontWeight: 800,
-                    color: 'var(--text-primary)',
+                    color: 'var(--text)',
                   }}
                 >
-                  Draft an Amendment
+                  {theme.labels.amendTitle}
                 </h3>
                 <span
                   style={{
                     fontSize: '0.68rem',
                     padding: '2px 8px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'var(--accent-gold-subtle)',
-                    color: 'var(--accent-gold)',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--surface-2)',
+                    color: 'var(--accent-2)',
+                    border: '1px solid var(--accent-2)',
                     fontWeight: 700,
+                    fontFamily: 'var(--font-display)',
                   }}
                 >
                   Turn {currentTurn}
                 </span>
               </div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Proposing Legislator: <strong>{proposer.name}</strong>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Proposing Legislator: <strong style={{ color: 'var(--text)' }}>{proposer.name}</strong>
               </p>
             </div>
           </div>
@@ -139,19 +135,19 @@ export const ProposalComposer: React.FC<ProposalComposerProps> = ({
         {/* Constitutional Guardrails Reminder Banner */}
         <div
           style={{
-            background: 'var(--bg-subtle)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-subtle)',
+            background: 'var(--surface-2)',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--line)',
             padding: '10px 14px',
             marginBottom: '18px',
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
             fontSize: '0.78rem',
-            color: 'var(--text-secondary)',
+            color: 'var(--text)',
           }}
         >
-          <ShieldCheck size={18} style={{ color: 'var(--accent-burgundy)', flexShrink: 0 }} />
+          <ShieldCheck size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
           <div>
             <strong>No player voting.</strong> You may propose rules that benefit your own score.
             The AI judicial pipeline checks your proposal against bounded engine vocabulary (±5 points limit).
@@ -172,15 +168,14 @@ export const ProposalComposer: React.FC<ProposalComposerProps> = ({
               style={{
                 width: '100%',
                 padding: '14px 16px',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-strong)',
-                background: 'var(--bg-surface-elevated)',
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-sans)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--line)',
+                background: 'var(--surface-2)',
+                color: 'var(--text)',
+                fontFamily: 'var(--font-body)',
                 fontSize: '0.95rem',
                 resize: 'none',
                 outline: 'none',
-                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)',
               }}
             />
             <div
@@ -188,7 +183,7 @@ export const ProposalComposer: React.FC<ProposalComposerProps> = ({
                 display: 'flex',
                 justifyContent: 'flex-end',
                 fontSize: '0.72rem',
-                color: charsRemaining < 20 ? 'var(--status-rejected)' : 'var(--text-muted)',
+                color: charsRemaining < 20 ? 'var(--danger)' : 'var(--text-muted)',
                 fontWeight: 600,
               }}
             >
@@ -198,7 +193,7 @@ export const ProposalComposer: React.FC<ProposalComposerProps> = ({
 
           {/* Starter Example Chips */}
           <div style={{ marginBottom: '20px' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px', fontFamily: 'var(--font-display)' }}>
               Starter Suggestions (click to populate):
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -210,13 +205,14 @@ export const ProposalComposer: React.FC<ProposalComposerProps> = ({
                   disabled={isInterpreting}
                   style={{
                     padding: '4px 10px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'var(--bg-subtle)',
-                    border: '1px solid var(--border-subtle)',
-                    color: 'var(--text-secondary)',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--surface-2)',
+                    border: '1px solid var(--line)',
+                    color: 'var(--text)',
                     fontSize: '0.75rem',
                     cursor: 'pointer',
                     textAlign: 'left',
+                    fontFamily: 'var(--font-body)',
                   }}
                 >
                   &ldquo;{suggestion}&rdquo;
@@ -226,49 +222,34 @@ export const ProposalComposer: React.FC<ProposalComposerProps> = ({
           </div>
 
           {/* Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--line)', paddingTop: '16px' }}>
             <button
               type="button"
               onClick={onCancel}
               disabled={isInterpreting}
+              className="btn btn-secondary"
               style={{
                 padding: '8px 16px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'transparent',
-                border: '1px solid var(--border-subtle)',
-                color: 'var(--text-secondary)',
                 fontSize: '0.82rem',
-                fontWeight: 600,
-                cursor: 'pointer',
               }}
             >
-              Pass / Skip Amendment
+              Pass / Skip
             </button>
 
             <button
               type="submit"
               disabled={!isValid || isInterpreting}
+              className="btn btn-accent"
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
                 padding: '10px 24px',
-                borderRadius: 'var(--radius-full)',
-                background: isValid && !isInterpreting
-                  ? 'linear-gradient(135deg, var(--accent-burgundy), #5A1212)'
-                  : 'var(--border-strong)',
-                color: '#FAF7F2',
-                fontFamily: 'var(--font-serif)',
-                fontWeight: 800,
                 fontSize: '0.9rem',
                 letterSpacing: '0.04em',
-                border: 'none',
+                opacity: isValid && !isInterpreting ? 1 : 0.6,
                 cursor: isValid && !isInterpreting ? 'pointer' : 'not-allowed',
-                boxShadow: isValid && !isInterpreting ? '0 4px 14px rgba(139, 30, 30, 0.3)' : 'none',
               }}
             >
               <Send size={15} />
-              {isInterpreting ? 'AI DELIBERATING...' : 'SUBMIT PROPOSAL'}
+              {isInterpreting ? 'AI DELIBERATING...' : theme.labels.amendSubmit}
             </button>
           </div>
         </form>

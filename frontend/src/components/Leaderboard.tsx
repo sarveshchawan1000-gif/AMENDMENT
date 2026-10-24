@@ -1,7 +1,8 @@
 import React from 'react';
 import { Player } from '../types/game';
 import { rankPlayers } from '../engine/gameEngine';
-import { Trophy, Crown, Anchor, Scroll, Activity } from 'lucide-react';
+import { useTheme } from '../theme/ThemeProvider';
+import { Trophy, Crown, Anchor } from 'lucide-react';
 
 interface LeaderboardProps {
   players: Player[];
@@ -17,17 +18,15 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   winTarget,
   boardSize,
 }) => {
+  const { theme } = useTheme();
   const ranked = rankPlayers(players);
   const activePlayer = players[activePlayerIndex];
 
   return (
     <div
+      className="panel"
       style={{
-        background: 'var(--bg-surface)',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border-subtle)',
         padding: '20px',
-        boxShadow: 'var(--shadow-card)',
         display: 'flex',
         flexDirection: 'column',
         gap: '14px',
@@ -38,14 +37,14 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderBottom: '1px solid var(--border-subtle)',
+          borderBottom: '1px solid var(--line)',
           paddingBottom: '10px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Trophy size={18} style={{ color: 'var(--accent-gold)' }} />
-          <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', fontWeight: 800 }}>
-            Chamber Standings
+          <Trophy size={18} style={{ color: 'var(--accent-2)' }} />
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 800, color: 'var(--text)' }}>
+            {theme.labels.leaderboard}
           </h3>
         </div>
         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
@@ -57,18 +56,18 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
         {ranked.map((player, rankIndex) => {
           const isLeader = rankIndex === 0;
           const isLast = rankIndex === ranked.length - 1 && ranked.length > 1;
-          const isActive = player.id === activePlayer.id;
+          const isActive = activePlayer && player.id === activePlayer.id;
           const progressPercent = Math.min(100, Math.round((player.score / winTarget) * 100));
 
           return (
             <div
               key={player.id}
               style={{
-                borderRadius: 'var(--radius-md)',
-                background: isActive ? 'var(--bg-subtle)' : 'transparent',
+                borderRadius: 'var(--radius)',
+                background: isActive ? 'var(--surface-2)' : 'transparent',
                 border: isActive
                   ? `2px solid ${player.color}`
-                  : '1px solid var(--border-subtle)',
+                  : '1px solid var(--line)',
                 padding: '10px 14px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -81,10 +80,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span
                     style={{
-                      fontFamily: 'var(--font-mono)',
+                      fontFamily: 'monospace',
                       fontSize: '0.85rem',
                       fontWeight: 800,
-                      color: isLeader ? 'var(--accent-gold)' : 'var(--text-muted)',
+                      color: isLeader ? 'var(--accent-2)' : 'var(--text-muted)',
                       width: '18px',
                     }}
                   >
@@ -97,7 +96,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                       height: '28px',
                       borderRadius: '50%',
                       background: player.color,
-                      color: '#fff',
+                      color: 'var(--accent-contrast)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -110,7 +109,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text)' }}>
                         {player.name}
                       </span>
                       {isLeader && (
@@ -121,12 +120,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                             alignItems: 'center',
                             gap: '3px',
                             padding: '1px 6px',
-                            background: 'var(--accent-gold-subtle)',
-                            color: 'var(--accent-gold)',
-                            border: '1px solid var(--accent-gold)',
-                            borderRadius: 'var(--radius-full)',
+                            background: 'var(--surface-2)',
+                            color: 'var(--accent-2)',
+                            border: '1px solid var(--accent-2)',
+                            borderRadius: 'var(--radius-sm)',
                             fontSize: '0.65rem',
                             fontWeight: 800,
+                            fontFamily: 'var(--font-display)',
                           }}
                         >
                           <Crown size={10} /> LEADER
@@ -140,12 +140,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                             alignItems: 'center',
                             gap: '3px',
                             padding: '1px 6px',
-                            background: 'var(--bg-surface)',
+                            background: 'var(--surface)',
                             color: 'var(--text-muted)',
-                            border: '1px solid var(--border-strong)',
-                            borderRadius: 'var(--radius-full)',
+                            border: '1px solid var(--line)',
+                            borderRadius: 'var(--radius-sm)',
                             fontSize: '0.65rem',
                             fontWeight: 700,
+                            fontFamily: 'var(--font-display)',
                           }}
                         >
                           <Anchor size={10} /> LAST
@@ -163,10 +164,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 <div style={{ textAlign: 'right' }}>
                   <div
                     style={{
-                      fontFamily: 'var(--font-mono)',
+                      fontFamily: 'monospace',
                       fontSize: '1.25rem',
                       fontWeight: 800,
-                      color: isLeader ? 'var(--accent-gold)' : 'var(--text-primary)',
+                      color: isLeader ? 'var(--accent-2)' : 'var(--text)',
                       lineHeight: 1,
                     }}
                   >
@@ -183,8 +184,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 style={{
                   width: '100%',
                   height: '5px',
-                  borderRadius: '3px',
-                  background: 'var(--bg-subtle)',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--surface-2)',
                   overflow: 'hidden',
                 }}
               >
@@ -192,8 +193,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                   style={{
                     width: `${progressPercent}%`,
                     height: '100%',
-                    background: isLeader ? 'var(--accent-gold)' : player.color,
-                    borderRadius: '3px',
+                    background: isLeader ? 'var(--accent-2)' : player.color,
+                    borderRadius: 'var(--radius-sm)',
                     transition: 'width 0.3s ease',
                   }}
                 />

@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { CompiledRule, RuleStatus } from '../types/game';
+import { useTheme } from '../theme/ThemeProvider';
 import {
   ScrollText,
-  ShieldCheck,
   Clock,
   User,
   Code2,
-  FileCheck2,
   AlertTriangle,
-  ExternalLink,
   X,
 } from 'lucide-react';
 
@@ -17,7 +15,8 @@ interface RuleLedgerProps {
   currentTurn: number;
 }
 
-export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) => {
+export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules }) => {
+  const { theme } = useTheme();
   const [filter, setFilter] = useState<string>('active');
   const [inspectingRule, setInspectingRule] = useState<CompiledRule | null>(null);
 
@@ -33,14 +32,15 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
           <span
             style={{
               padding: '2px 8px',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--status-admitted-bg)',
-              color: 'var(--status-admitted)',
-              border: '1px solid var(--status-admitted-border)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--surface-2)',
+              color: 'var(--ok)',
+              border: '1px solid var(--ok)',
               fontSize: '0.68rem',
               fontWeight: 800,
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
+              fontFamily: 'var(--font-display)',
             }}
           >
             ACTIVE
@@ -51,13 +51,14 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
           <span
             style={{
               padding: '2px 8px',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--status-active-bg)',
-              color: 'var(--status-active)',
-              border: '1px solid var(--status-active)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--surface-2)',
+              color: 'var(--accent-2)',
+              border: '1px solid var(--accent-2)',
               fontSize: '0.68rem',
               fontWeight: 700,
               textTransform: 'uppercase',
+              fontFamily: 'var(--font-display)',
             }}
           >
             PENDING (NEXT TURN)
@@ -68,13 +69,14 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
           <span
             style={{
               padding: '2px 8px',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--status-rejected-bg)',
-              color: 'var(--status-rejected)',
-              border: '1px solid var(--status-rejected-border)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--surface-2)',
+              color: 'var(--danger)',
+              border: '1px solid var(--danger)',
               fontSize: '0.68rem',
               fontWeight: 800,
               textTransform: 'uppercase',
+              fontFamily: 'var(--font-display)',
             }}
           >
             REJECTED
@@ -85,12 +87,14 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
           <span
             style={{
               padding: '2px 8px',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--status-expired-bg)',
-              color: 'var(--status-expired)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--surface-2)',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--line)',
               fontSize: '0.68rem',
               fontWeight: 700,
               textTransform: 'uppercase',
+              fontFamily: 'var(--font-display)',
             }}
           >
             EXPIRED
@@ -101,12 +105,14 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
           <span
             style={{
               padding: '2px 8px',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--status-overridden-bg)',
-              color: 'var(--status-overridden)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--surface-2)',
+              color: 'var(--accent)',
+              border: '1px solid var(--accent)',
               fontSize: '0.68rem',
               fontWeight: 700,
               textTransform: 'uppercase',
+              fontFamily: 'var(--font-display)',
             }}
           >
             SUPERSEDED
@@ -119,12 +125,9 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
 
   return (
     <div
+      className="panel"
       style={{
-        background: 'var(--bg-surface)',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border-subtle)',
         padding: '20px',
-        boxShadow: 'var(--shadow-card)',
         display: 'flex',
         flexDirection: 'column',
         gap: '14px',
@@ -138,24 +141,24 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '10px',
-          borderBottom: '1px solid var(--border-subtle)',
+          borderBottom: '1px solid var(--line)',
           paddingBottom: '12px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ScrollText size={20} style={{ color: 'var(--accent-burgundy)' }} />
+          <ScrollText size={20} style={{ color: 'var(--accent)' }} />
           <div>
-            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.05rem', fontWeight: 800 }}>
-              The Rule Ledger
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', fontWeight: 800, color: 'var(--text)' }}>
+              {theme.labels.ledger}
             </h3>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
               Deterministic Engine Enforcement Record
             </span>
           </div>
         </div>
 
         {/* Filter Pills */}
-        <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-subtle)', padding: '3px', borderRadius: 'var(--radius-md)' }}>
+        <div style={{ display: 'flex', gap: '4px', background: 'var(--surface-2)', padding: '3px', borderRadius: 'var(--radius-sm)' }}>
           {['active', 'all', 'expired', 'rejected', 'overridden'].map((tab) => (
             <button
               key={tab}
@@ -165,13 +168,13 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
                 padding: '4px 10px',
                 borderRadius: 'var(--radius-sm)',
                 border: 'none',
-                background: filter === tab ? 'var(--bg-surface)' : 'transparent',
-                color: filter === tab ? 'var(--accent-burgundy)' : 'var(--text-secondary)',
+                background: filter === tab ? 'var(--surface)' : 'transparent',
+                color: filter === tab ? 'var(--accent)' : 'var(--text-muted)',
                 fontWeight: filter === tab ? 800 : 600,
                 fontSize: '0.72rem',
+                fontFamily: 'var(--font-display)',
                 cursor: 'pointer',
                 textTransform: 'capitalize',
-                boxShadow: filter === tab ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
               }}
             >
               {tab}
@@ -202,16 +205,15 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
               <div
                 key={rule.id}
                 style={{
-                  borderRadius: 'var(--radius-md)',
-                  background: isBase ? 'var(--bg-subtle)' : 'var(--bg-surface-elevated)',
+                  borderRadius: 'var(--radius)',
+                  background: isBase ? 'var(--surface-2)' : 'var(--surface)',
                   border: isBase
-                    ? '1px dashed var(--border-strong)'
-                    : '1px solid var(--border-subtle)',
+                    ? '1px dashed var(--line)'
+                    : '1px solid var(--line)',
                   padding: '14px 16px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '8px',
-                  boxShadow: 'var(--shadow-subtle)',
                 }}
               >
                 {/* Rule Title Row */}
@@ -219,24 +221,24 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span
                       style={{
-                        fontFamily: 'var(--font-mono)',
+                        fontFamily: 'monospace',
                         fontSize: '0.72rem',
                         fontWeight: 700,
                         padding: '2px 6px',
                         borderRadius: 'var(--radius-sm)',
-                        background: isBase ? 'var(--accent-burgundy-light)' : 'var(--accent-gold-subtle)',
-                        color: isBase ? 'var(--accent-burgundy)' : 'var(--accent-gold)',
-                        border: isBase ? '1px solid var(--accent-burgundy)' : '1px solid var(--accent-gold)',
+                        background: 'var(--surface-2)',
+                        color: isBase ? 'var(--accent)' : 'var(--accent-2)',
+                        border: isBase ? '1px solid var(--accent)' : '1px solid var(--accent-2)',
                       }}
                     >
                       {rule.id}
                     </span>
                     <h4
                       style={{
-                        fontFamily: 'var(--font-serif)',
+                        fontFamily: 'var(--font-display)',
                         fontSize: '0.95rem',
                         fontWeight: 700,
-                        color: 'var(--text-primary)',
+                        color: 'var(--text)',
                       }}
                     >
                       {rule.title}
@@ -246,10 +248,12 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
                         style={{
                           fontSize: '0.62rem',
                           padding: '1px 6px',
-                          background: 'var(--border-strong)',
-                          color: '#fff',
-                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--surface-2)',
+                          color: 'var(--text-muted)',
+                          border: '1px solid var(--line)',
+                          borderRadius: 'var(--radius-sm)',
                           fontWeight: 700,
+                          fontFamily: 'var(--font-display)',
                         }}
                       >
                         CONSTITUTIONAL BASE
@@ -286,21 +290,21 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
                     gap: '10px',
                     padding: '8px 10px',
                     borderRadius: 'var(--radius-sm)',
-                    background: 'var(--bg-surface)',
-                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--surface-2)',
+                    border: '1px solid var(--line)',
                   }}
                 >
                   {/* Original Player English */}
                   <div>
-                    <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '2px' }}>
+                    <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '2px', fontFamily: 'var(--font-display)' }}>
                       Authored English Proposal
                     </div>
                     <p
                       style={{
-                        fontFamily: 'var(--font-editorial)',
+                        fontFamily: 'var(--font-body)',
                         fontSize: '0.88rem',
                         fontStyle: 'italic',
-                        color: 'var(--text-primary)',
+                        color: 'var(--text)',
                         lineHeight: 1.35,
                       }}
                     >
@@ -310,13 +314,13 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
 
                   {/* Compiled Meaning */}
                   <div>
-                    <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--accent-gold)', fontWeight: 700, marginBottom: '2px' }}>
+                    <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--accent-2)', fontWeight: 700, marginBottom: '2px', fontFamily: 'var(--font-display)' }}>
                       Compiled Engine Law
                     </div>
                     <p
                       style={{
                         fontSize: '0.8rem',
-                        color: 'var(--text-secondary)',
+                        color: 'var(--text)',
                         lineHeight: 1.35,
                         fontWeight: 600,
                       }}
@@ -341,7 +345,7 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <User size={12} />
-                    <span>Author: <strong>{rule.proposer_name}</strong></span>
+                    <span>Author: <strong style={{ color: 'var(--text)' }}>{rule.proposer_name}</strong></span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -370,11 +374,12 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
                       fontSize: '0.72rem',
                       padding: '4px 8px',
                       borderRadius: 'var(--radius-sm)',
-                      background: 'var(--bg-subtle)',
-                      color: 'var(--text-secondary)',
+                      background: 'var(--surface-2)',
+                      border: '1px solid var(--line)',
+                      color: 'var(--text-muted)',
                     }}
                   >
-                    <AlertTriangle size={12} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+                    <AlertTriangle size={12} style={{ color: 'var(--accent-2)', flexShrink: 0 }} />
                     <span>Advisory note: {rule.loophole_risk.note}</span>
                   </div>
                 )}
@@ -390,7 +395,7 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.6)',
+            background: 'rgba(0,0,0,0.65)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -399,20 +404,17 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
           }}
         >
           <div
+            className="panel"
             style={{
-              background: 'var(--bg-surface)',
-              borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--border-strong)',
               maxWidth: '560px',
               width: '100%',
               padding: '24px',
-              boxShadow: 'var(--shadow-elevated)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Code2 size={20} style={{ color: 'var(--accent-burgundy)' }} />
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', fontWeight: 800 }}>
+                <Code2 size={20} style={{ color: 'var(--accent)' }} />
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 800, color: 'var(--text)' }}>
                   Compiled Rule Schema ({inspectingRule.id})
                 </h3>
               </div>
@@ -425,18 +427,19 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
               </button>
             </div>
 
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
               Deterministic JSON output consumed by the game engine. No code execution is permitted.
             </p>
 
             <pre
               style={{
-                fontFamily: 'var(--font-mono)',
+                fontFamily: 'monospace',
                 fontSize: '0.75rem',
-                background: 'var(--bg-subtle)',
+                background: 'var(--surface-2)',
+                color: 'var(--text)',
                 padding: '14px',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--line)',
                 overflowX: 'auto',
                 maxHeight: '340px',
               }}
@@ -448,15 +451,10 @@ export const RuleLedger: React.FC<RuleLedgerProps> = ({ rules, currentTurn }) =>
               <button
                 type="button"
                 onClick={() => setInspectingRule(null)}
+                className="btn btn-accent"
                 style={{
                   padding: '8px 18px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--accent-burgundy)',
-                  color: '#fff',
-                  border: 'none',
-                  fontWeight: 700,
                   fontSize: '0.8rem',
-                  cursor: 'pointer',
                 }}
               >
                 Close Inspector

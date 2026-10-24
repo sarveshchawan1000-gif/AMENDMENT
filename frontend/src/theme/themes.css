@@ -1,0 +1,235 @@
+/* AMENDMENT Theme System Styles
+   Theme Variables and Shared Classes
+*/
+
+/* 1. Modern Theme (Default) */
+html[data-theme="modern"],
+html[data-theme="modern"][data-mode="light"],
+html:not([data-theme]) {
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --surface-2: #F1F5F9;
+  --text: #0F172A;
+  --text-muted: #64748B;
+  --line: #E2E8F0;
+  --accent: #2F5BFF;
+  --accent-contrast: #FFFFFF;
+  --accent-2: #0EA5E9;
+  --danger: #DC2626;
+  --ok: #16A34A;
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --radius: 12px;
+  --radius-sm: 6px;
+  --panel-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  --tile-a: #FFFFFF;
+  --tile-b: #F1F5F9;
+  --tile-prime: #EFF6FF;
+  --tile-prime-border: #93C5FD;
+  --p1: #EF4444;
+  --p2: #2F5BFF;
+  --p3: #10B981;
+  --p4: #8B5CF6;
+}
+
+/* Modern Dark Mode */
+html[data-theme="modern"][data-mode="dark"] {
+  --bg: #0B0F19;
+  --surface: #111827;
+  --surface-2: #1F2937;
+  --text: #F8FAFB;
+  --text-muted: #94A3B8;
+  --line: #374151;
+  --accent: #3B82F6;
+  --accent-contrast: #FFFFFF;
+  --accent-2: #38BDF8;
+  --danger: #EF4444;
+  --ok: #22C55E;
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --radius: 12px;
+  --radius-sm: 6px;
+  --panel-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --tile-a: #111827;
+  --tile-b: #1E293B;
+  --tile-prime: #172554;
+  --tile-prime-border: #1E40AF;
+  --p1: #F87171;
+  --p2: #60A5FA;
+  --p3: #34D399;
+  --p4: #A78BFA;
+}
+
+/* 2. Kingdom Theme (Parchment, Crimson & Gold) */
+html[data-theme="kingdom"] {
+  --bg: #EFE3C8;
+  --surface: #FCF8EE;
+  --surface-2: #E6D5B3;
+  --text: #2B1D12;
+  --text-muted: #745C44;
+  --line: #D4BE98;
+  --accent: #8C1C2B;
+  --accent-contrast: #FFFFFF;
+  --accent-2: #B8902F;
+  --danger: #8C1C2B;
+  --ok: #246B39;
+  --font-display: 'Cinzel', Georgia, serif;
+  --font-body: 'EB Garamond', Georgia, serif;
+  --radius: 4px;
+  --radius-sm: 2px;
+  --panel-shadow: 0 0 0 1px #D4BE98, 0 0 0 3px #B8902F, 0 8px 24px rgba(60, 40, 20, 0.16);
+  --tile-a: #FCF8EE;
+  --tile-b: #EFE3C8;
+  --tile-prime: #FCE8B3;
+  --tile-prime-border: #B8902F;
+  --p1: #8C1C2B;
+  --p2: #1E4B6E;
+  --p3: #276233;
+  --p4: #6E3B7E;
+}
+
+/* 3. Classical Ink (Brushwork & High-Performance UI) */
+html[data-theme="brushwork"],
+html[data-theme="brushwork"][data-mode="light"] {
+  --bg: #F4EFEB;
+  --surface: #FCFAF6;
+  --surface-2: #EAE1D3;
+  --text: #1C1917;
+  --text-muted: #6C6256;
+  --line: #D8CEBE;
+  --accent: #BD3A2B;
+  --accent-contrast: #FFFFFF;
+  --accent-2: #2E624D;
+  --danger: #BD3A2B;
+  --ok: #2E624D;
+  --font-display: 'EB Garamond', 'Cinzel', Georgia, serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --radius: 8px;
+  --radius-sm: 4px;
+  --panel-shadow: 0 4px 20px rgba(44, 38, 30, 0.08), 0 0 0 1px #D8CEBE;
+  --tile-a: #FCFAF6;
+  --tile-b: #EFE8DC;
+  --tile-prime: #FCE8E4;
+  --tile-prime-border: #BD3A2B;
+  --p1: #BD3A2B;
+  --p2: #1E3A5F;
+  --p3: #2E624D;
+  --p4: #7D4E72;
+}
+
+/* Classical Ink Dark Mode (Sumi-e Inkstone & Cinnabar Seal) */
+html[data-theme="brushwork"][data-mode="dark"] {
+  --bg: #141316;
+  --surface: #1C1B20;
+  --surface-2: #26242B;
+  --text: #F5EFEB;
+  --text-muted: #9E9488;
+  --line: #3D3945;
+  --accent: #E05343;
+  --accent-contrast: #FFFFFF;
+  --accent-2: #48A179;
+  --danger: #E05343;
+  --ok: #48A179;
+  --font-display: 'EB Garamond', 'Cinzel', Georgia, serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --radius: 8px;
+  --radius-sm: 4px;
+  --panel-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px #3D3945;
+  --tile-a: #1C1B20;
+  --tile-b: #242229;
+  --tile-prime: #331C20;
+  --tile-prime-border: #E05343;
+  --p1: #E05343;
+  --p2: #4F83CC;
+  --p3: #48A179;
+  --p4: #B37EAA;
+}
+
+/* Base Body Application */
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+}
+
+/* Focus outline for accessibility */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Shared Utility Classes */
+.panel {
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--panel-shadow);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.btn-accent {
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  border: 1px solid var(--accent);
+}
+
+.btn-secondary {
+  background-color: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.tile {
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+/* Classical Brushwork Stamped Seal Styling */
+html[data-theme="brushwork"] .stamp {
+  border-width: 2px;
+  border-style: solid;
+  letter-spacing: 0.18em;
+  transform: rotate(-1deg);
+}
+
+html[data-theme="brushwork"] .stamp-admitted {
+  border-color: var(--ok);
+  color: var(--ok);
+  background: var(--surface-2);
+}
+
+html[data-theme="brushwork"] .stamp-rejected {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: var(--surface-2);
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

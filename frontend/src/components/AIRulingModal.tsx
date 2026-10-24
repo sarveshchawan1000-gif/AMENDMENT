@@ -1,11 +1,9 @@
 import React from 'react';
 import { AIRuling, Player } from '../types/game';
 import {
-  ShieldAlert,
   CheckCircle2,
   XCircle,
   Clock,
-  Sparkles,
   AlertTriangle,
   ArrowRight,
   Cpu,
@@ -42,18 +40,16 @@ export const AIRulingModal: React.FC<AIRulingModalProps> = ({
       }}
     >
       <div
+        className="panel"
         style={{
-          background: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-lg)',
           border: isInterpreting
-            ? '2px solid var(--accent-gold)'
+            ? '2px solid var(--accent)'
             : isAccepted
-            ? '2px solid var(--status-admitted-border)'
-            : '2px solid var(--status-rejected-border)',
+            ? '2px solid var(--ok)'
+            : '2px solid var(--danger)',
           maxWidth: '580px',
           width: '100%',
           padding: '30px',
-          boxShadow: 'var(--shadow-elevated)',
           position: 'relative',
         }}
       >
@@ -66,29 +62,29 @@ export const AIRulingModal: React.FC<AIRulingModalProps> = ({
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                background: 'var(--accent-gold-subtle)',
-                color: 'var(--accent-gold)',
+                background: 'var(--surface-2)',
+                color: 'var(--accent)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: '16px',
-                boxShadow: '0 0 16px var(--accent-gold)',
+                border: '1px solid var(--accent)',
               }}
             >
               <Cpu size={32} />
             </div>
             <h3
               style={{
-                fontFamily: 'var(--font-serif)',
+                fontFamily: 'var(--font-display)',
                 fontSize: '1.3rem',
                 fontWeight: 800,
-                color: 'var(--text-primary)',
+                color: 'var(--text)',
                 marginBottom: '8px',
               }}
             >
               AI Judicial Review in Progress
             </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto' }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '400px', margin: '0 auto', fontFamily: 'var(--font-body)' }}>
               Gemma model is interpreting the proposal, mapping trigger/conditions, and verifying deterministic engine limits...
             </p>
           </div>
@@ -100,15 +96,15 @@ export const AIRulingModal: React.FC<AIRulingModalProps> = ({
             {/* Header with Stamp */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
               <div>
-                <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
                   Constitutional Tribunal Ruling
                 </span>
                 <h3
                   style={{
-                    fontFamily: 'var(--font-serif)',
+                    fontFamily: 'var(--font-display)',
                     fontSize: '1.25rem',
                     fontWeight: 800,
-                    color: 'var(--text-primary)',
+                    color: 'var(--text)',
                   }}
                 >
                   {isAccepted ? 'Amendment Enacted' : 'Proposal Rejected'}
@@ -124,22 +120,22 @@ export const AIRulingModal: React.FC<AIRulingModalProps> = ({
             {/* Proposal Context Box */}
             <div
               style={{
-                background: 'var(--bg-subtle)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-subtle)',
+                background: 'var(--surface-2)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--line)',
                 padding: '14px',
                 marginBottom: '16px',
               }}
             >
-              <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '4px' }}>
+              <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '4px', fontFamily: 'var(--font-display)' }}>
                 Proposed by {proposer.name}
               </div>
               <p
                 style={{
-                  fontFamily: 'var(--font-editorial)',
+                  fontFamily: 'var(--font-body)',
                   fontSize: '0.98rem',
                   fontStyle: 'italic',
-                  color: 'var(--text-primary)',
+                  color: 'var(--text)',
                 }}
               >
                 &ldquo;{ruling.normalized_rule}&rdquo;
@@ -150,21 +146,21 @@ export const AIRulingModal: React.FC<AIRulingModalProps> = ({
             {isAccepted && ruling.compiled_rule && (
               <div
                 style={{
-                  background: 'var(--status-admitted-bg)',
-                  border: '1px solid var(--status-admitted-border)',
-                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--surface-2)',
+                  border: '1px solid var(--ok)',
+                  borderRadius: 'var(--radius-sm)',
                   padding: '14px 16px',
                   marginBottom: '18px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <CheckCircle2 size={18} style={{ color: 'var(--status-admitted)' }} />
-                  <strong style={{ fontSize: '0.9rem', color: 'var(--status-admitted)' }}>
+                  <CheckCircle2 size={18} style={{ color: 'var(--ok)' }} />
+                  <strong style={{ fontSize: '0.9rem', color: 'var(--ok)', fontFamily: 'var(--font-display)' }}>
                     Passed Constitutional Scrutiny
                   </strong>
                 </div>
 
-                <div style={{ fontSize: '0.84rem', color: 'var(--text-primary)', marginBottom: '8px' }}>
+                <div style={{ fontSize: '0.84rem', color: 'var(--text)', marginBottom: '8px' }}>
                   <strong>Engine Law:</strong> {ruling.compiled_rule.readable_meaning}
                 </div>
 
@@ -174,7 +170,7 @@ export const AIRulingModal: React.FC<AIRulingModalProps> = ({
                     alignItems: 'center',
                     gap: '6px',
                     fontSize: '0.78rem',
-                    color: 'var(--status-admitted)',
+                    color: 'var(--ok)',
                     fontWeight: 700,
                   }}
                 >
@@ -189,34 +185,34 @@ export const AIRulingModal: React.FC<AIRulingModalProps> = ({
             {!isAccepted && (
               <div
                 style={{
-                  background: 'var(--status-rejected-bg)',
-                  border: '1px solid var(--status-rejected-border)',
-                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--surface-2)',
+                  border: '1px solid var(--danger)',
+                  borderRadius: 'var(--radius-sm)',
                   padding: '14px 16px',
                   marginBottom: '18px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <XCircle size={18} style={{ color: 'var(--status-rejected)' }} />
-                  <strong style={{ fontSize: '0.9rem', color: 'var(--status-rejected)' }}>
+                  <XCircle size={18} style={{ color: 'var(--danger)' }} />
+                  <strong style={{ fontSize: '0.9rem', color: 'var(--danger)', fontFamily: 'var(--font-display)' }}>
                     Rejection Grounds
                   </strong>
                 </div>
 
-                <p style={{ fontSize: '0.84rem', color: 'var(--text-primary)', marginBottom: '8px' }}>
+                <p style={{ fontSize: '0.84rem', color: 'var(--text)', marginBottom: '8px' }}>
                   {ruling.reason}
                 </p>
 
                 <div
                   style={{
                     fontSize: '0.75rem',
-                    color: 'var(--status-rejected)',
+                    color: 'var(--danger)',
                     fontWeight: 700,
                     paddingTop: '4px',
-                    borderTop: '1px dashed var(--status-rejected-border)',
+                    borderTop: '1px dashed var(--danger)',
                   }}
                 >
-                  ★ Game state remained unaltered. Turn passes without score or movement penalty.
+                  ★ Game state remained unaltered. Turn passes without penalty.
                 </div>
               </div>
             )}
@@ -230,14 +226,14 @@ export const AIRulingModal: React.FC<AIRulingModalProps> = ({
                   gap: '8px',
                   padding: '8px 12px',
                   borderRadius: 'var(--radius-sm)',
-                  background: 'var(--bg-subtle)',
-                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--surface-2)',
+                  border: '1px solid var(--line)',
                   fontSize: '0.75rem',
-                  color: 'var(--text-secondary)',
+                  color: 'var(--text-muted)',
                   marginBottom: '18px',
                 }}
               >
-                <AlertTriangle size={14} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+                <AlertTriangle size={14} style={{ color: 'var(--accent-2)', flexShrink: 0 }} />
                 <span>AI Risk Assessment: {ruling.loophole_risk.note}</span>
               </div>
             )}
@@ -247,20 +243,10 @@ export const AIRulingModal: React.FC<AIRulingModalProps> = ({
               <button
                 type="button"
                 onClick={onDismiss}
+                className="btn btn-accent"
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
                   padding: '10px 24px',
-                  borderRadius: 'var(--radius-full)',
-                  background: isAccepted ? 'var(--status-admitted)' : 'var(--text-primary)',
-                  color: '#fff',
-                  fontFamily: 'var(--font-serif)',
-                  fontWeight: 800,
                   fontSize: '0.88rem',
-                  border: 'none',
-                  cursor: 'pointer',
-                  boxShadow: 'var(--shadow-subtle)',
                 }}
               >
                 <span>Continue Match</span>

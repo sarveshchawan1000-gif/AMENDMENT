@@ -4,9 +4,6 @@ import {
   Activity,
   X,
   ArrowRight,
-  ShieldCheck,
-  Sparkles,
-  Clock,
   Layers,
 } from 'lucide-react';
 
@@ -23,7 +20,7 @@ export const RuleAutopsyModal: React.FC<RuleAutopsyModalProps> = ({ event, onClo
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0, 0, 0, 0.65)',
+        background: 'rgba(0, 0, 0, 0.7)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -32,14 +29,11 @@ export const RuleAutopsyModal: React.FC<RuleAutopsyModalProps> = ({ event, onClo
       }}
     >
       <div
+        className="panel"
         style={{
-          background: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-strong)',
           maxWidth: '600px',
           width: '100%',
           padding: '28px',
-          boxShadow: 'var(--shadow-elevated)',
         }}
       >
         {/* Header */}
@@ -50,8 +44,9 @@ export const RuleAutopsyModal: React.FC<RuleAutopsyModalProps> = ({ event, onClo
                 width: '36px',
                 height: '36px',
                 borderRadius: 'var(--radius-sm)',
-                background: 'var(--accent-burgundy-light)',
-                color: 'var(--accent-burgundy)',
+                background: 'var(--surface-2)',
+                color: 'var(--accent)',
+                border: '1px solid var(--accent)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -60,7 +55,7 @@ export const RuleAutopsyModal: React.FC<RuleAutopsyModalProps> = ({ event, onClo
               <Activity size={20} />
             </div>
             <div>
-              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.15rem', fontWeight: 800 }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', fontWeight: 800, color: 'var(--text)' }}>
                 Rule Autopsy / Causal Record
               </h3>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
@@ -91,25 +86,25 @@ export const RuleAutopsyModal: React.FC<RuleAutopsyModalProps> = ({ event, onClo
           <div
             style={{
               padding: '12px 16px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--bg-subtle)',
-              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--line)',
             }}
           >
-            <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
+            <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
               Score Transformation
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.15rem', fontWeight: 700 }}>
+              <span style={{ fontFamily: 'monospace', fontSize: '1.15rem', fontWeight: 700, color: 'var(--text)' }}>
                 {event.prior_score} pts
               </span>
               <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
               <span
                 style={{
-                  fontFamily: 'var(--font-mono)',
+                  fontFamily: 'monospace',
                   fontSize: '1.25rem',
                   fontWeight: 800,
-                  color: event.score_delta > 0 ? 'var(--status-admitted)' : 'var(--text-primary)',
+                  color: event.score_delta > 0 ? 'var(--ok)' : 'var(--text)',
                 }}
               >
                 {event.resulting_score} pts
@@ -119,7 +114,7 @@ export const RuleAutopsyModal: React.FC<RuleAutopsyModalProps> = ({ event, onClo
                   style={{
                     fontSize: '0.75rem',
                     fontWeight: 800,
-                    color: event.score_delta > 0 ? 'var(--status-admitted)' : 'var(--status-rejected)',
+                    color: event.score_delta > 0 ? 'var(--ok)' : 'var(--danger)',
                   }}
                 >
                   ({event.score_delta > 0 ? `+${event.score_delta}` : event.score_delta})
@@ -132,20 +127,20 @@ export const RuleAutopsyModal: React.FC<RuleAutopsyModalProps> = ({ event, onClo
           <div
             style={{
               padding: '12px 16px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--bg-subtle)',
-              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--line)',
             }}
           >
-            <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
+            <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
               Tile Location
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.15rem', fontWeight: 700 }}>
+              <span style={{ fontFamily: 'monospace', fontSize: '1.15rem', fontWeight: 700, color: 'var(--text)' }}>
                 Tile {event.prior_position}
               </span>
               <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-burgundy)' }}>
+              <span style={{ fontFamily: 'monospace', fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent)' }}>
                 Tile {event.resulting_position}
               </span>
             </div>
@@ -155,15 +150,15 @@ export const RuleAutopsyModal: React.FC<RuleAutopsyModalProps> = ({ event, onClo
         {/* Narrative Description */}
         <div
           style={{
-            background: 'var(--bg-surface-elevated)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-subtle)',
+            background: 'var(--surface-2)',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--line)',
             padding: '12px 16px',
             marginBottom: '20px',
-            fontFamily: 'var(--font-editorial)',
+            fontFamily: 'var(--font-body)',
             fontSize: '0.92rem',
             fontStyle: 'italic',
-            color: 'var(--text-primary)',
+            color: 'var(--text)',
           }}
         >
           &ldquo;{event.description}&rdquo;
@@ -173,11 +168,11 @@ export const RuleAutopsyModal: React.FC<RuleAutopsyModalProps> = ({ event, onClo
         <div style={{ marginBottom: '24px' }}>
           <h4
             style={{
-              fontFamily: 'var(--font-serif)',
+              fontFamily: 'var(--font-display)',
               fontSize: '0.9rem',
               fontWeight: 800,
               textTransform: 'uppercase',
-              color: 'var(--text-secondary)',
+              color: 'var(--text-muted)',
               letterSpacing: '0.06em',
               marginBottom: '10px',
               display: 'flex',
@@ -196,8 +191,8 @@ export const RuleAutopsyModal: React.FC<RuleAutopsyModalProps> = ({ event, onClo
                 style={{
                   padding: '10px 14px',
                   borderRadius: 'var(--radius-sm)',
-                  background: fired.is_base_rule ? 'var(--bg-subtle)' : 'var(--accent-gold-subtle)',
-                  border: fired.is_base_rule ? '1px dashed var(--border-strong)' : '1px solid var(--accent-gold)',
+                  background: 'var(--surface-2)',
+                  border: fired.is_base_rule ? '1px dashed var(--line)' : '1px solid var(--accent-2)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -207,30 +202,32 @@ export const RuleAutopsyModal: React.FC<RuleAutopsyModalProps> = ({ event, onClo
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span
                       style={{
-                        fontFamily: 'var(--font-mono)',
+                        fontFamily: 'monospace',
                         fontSize: '0.72rem',
                         fontWeight: 700,
-                        color: fired.is_base_rule ? 'var(--text-muted)' : 'var(--accent-gold)',
+                        color: fired.is_base_rule ? 'var(--text-muted)' : 'var(--accent-2)',
                       }}
                     >
                       {fired.rule_id}
                     </span>
-                    <strong style={{ fontSize: '0.85rem' }}>{fired.rule_title}</strong>
+                    <strong style={{ fontSize: '0.85rem', color: 'var(--text)' }}>{fired.rule_title}</strong>
                     <span
                       style={{
                         fontSize: '0.62rem',
                         padding: '1px 6px',
-                        borderRadius: 'var(--radius-full)',
-                        background: fired.is_base_rule ? 'var(--border-strong)' : 'var(--accent-gold)',
-                        color: '#fff',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--surface)',
+                        border: '1px solid var(--line)',
+                        color: fired.is_base_rule ? 'var(--text-muted)' : 'var(--accent-2)',
                         fontWeight: 700,
+                        fontFamily: 'var(--font-display)',
                       }}
                     >
-                      {fired.is_base_rule ? 'CONSTITUTIONAL BASE' : 'AMENDMENT'}
+                      {fired.is_base_rule ? 'BASE RULE' : 'AMENDMENT'}
                     </span>
                   </div>
 
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                     {fired.effect_summary}
                   </p>
                 </div>
@@ -238,10 +235,10 @@ export const RuleAutopsyModal: React.FC<RuleAutopsyModalProps> = ({ event, onClo
                 {fired.score_delta !== undefined && fired.score_delta !== 0 && (
                   <span
                     style={{
-                      fontFamily: 'var(--font-mono)',
+                      fontFamily: 'monospace',
                       fontSize: '0.95rem',
                       fontWeight: 800,
-                      color: fired.score_delta > 0 ? 'var(--status-admitted)' : 'var(--status-rejected)',
+                      color: fired.score_delta > 0 ? 'var(--ok)' : 'var(--danger)',
                     }}
                   >
                     {fired.score_delta > 0 ? `+${fired.score_delta}` : fired.score_delta} pts
@@ -257,15 +254,10 @@ export const RuleAutopsyModal: React.FC<RuleAutopsyModalProps> = ({ event, onClo
           <button
             type="button"
             onClick={onClose}
+            className="btn btn-accent"
             style={{
               padding: '8px 20px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--accent-burgundy)',
-              color: '#fff',
-              border: 'none',
-              fontWeight: 700,
               fontSize: '0.82rem',
-              cursor: 'pointer',
             }}
           >
             Close Autopsy

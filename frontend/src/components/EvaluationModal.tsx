@@ -1,17 +1,13 @@
 import React, { useState } from 'react';
-import { EVALUATION_TEST_SUITE, TestCase } from '../data/evalDataset';
+import { EVALUATION_TEST_SUITE } from '../data/evalDataset';
 import { submitProposalForAdmission } from '../services/admissionService';
 import { GameConfig, Player } from '../types/game';
 import {
   TestTube,
   CheckCircle2,
   XCircle,
-  AlertTriangle,
   Play,
-  RotateCcw,
   X,
-  ShieldCheck,
-  Filter,
 } from 'lucide-react';
 
 interface EvaluationModalProps {
@@ -35,7 +31,7 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
   const mockPlayer: Player = {
     id: 'test-proposer',
     name: 'Evaluator Proposer',
-    color: '#2B6CB0',
+    color: 'var(--p2)',
     score: 8,
     position: 10,
     isGemma: false,
@@ -74,7 +70,6 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
   const executedCount = Object.keys(results).length;
   const passedCount = Object.values(results).filter((r) => r.passed).length;
   const passRate = executedCount > 0 ? Math.round((passedCount / executedCount) * 100) : 0;
-  const unsafeExecutions = 0; // Guardrails ensure 0 out-of-schema or invalid effects reach engine
 
   const filteredTests = EVALUATION_TEST_SUITE.filter((tc) => {
     if (categoryFilter === 'all') return true;
@@ -95,29 +90,27 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
       }}
     >
       <div
+        className="panel"
         style={{
-          background: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-strong)',
           maxWidth: '840px',
           width: '100%',
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: 'var(--shadow-elevated)',
           padding: '24px',
         }}
       >
         {/* Modal Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '14px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '14px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div
               style={{
                 width: '36px',
                 height: '36px',
                 borderRadius: 'var(--radius-sm)',
-                background: 'var(--accent-gold-subtle)',
-                color: 'var(--accent-gold)',
+                background: 'var(--surface-2)',
+                color: 'var(--accent-2)',
+                border: '1px solid var(--accent-2)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -126,10 +119,10 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
               <TestTube size={20} />
             </div>
             <div>
-              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', fontWeight: 800 }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 800, color: 'var(--text)' }}>
                 AI Judicial Evaluation Harness (PRD §18)
               </h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 Frozen test dataset of 25 representative amendments covering valid, boundary, invalid, ambiguous, and adversarial inputs.
               </p>
             </div>
@@ -146,29 +139,29 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
 
         {/* Metrics Summary Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', marginBottom: '16px' }}>
-          <div style={{ padding: '12px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
+          <div style={{ padding: '12px', borderRadius: 'var(--radius-sm)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
+            <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
               Pass Rate
             </div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: passRate === 100 ? 'var(--status-admitted)' : 'var(--accent-gold)' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '1.25rem', fontWeight: 800, color: passRate === 100 ? 'var(--ok)' : 'var(--accent-2)' }}>
               {passRate}% ({passedCount}/{executedCount || 25})
             </div>
           </div>
 
-          <div style={{ padding: '12px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
+          <div style={{ padding: '12px', borderRadius: 'var(--radius-sm)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
+            <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
               Schema-Valid Rate
             </div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: 'var(--status-admitted)' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '1.25rem', fontWeight: 800, color: 'var(--ok)' }}>
               100% (25/25)
             </div>
           </div>
 
-          <div style={{ padding: '12px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
+          <div style={{ padding: '12px', borderRadius: 'var(--radius-sm)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
+            <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
               Unsafe Executions
             </div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: 'var(--status-admitted)' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '1.25rem', fontWeight: 800, color: 'var(--ok)' }}>
               0 (PRD Target Met)
             </div>
           </div>
@@ -178,23 +171,13 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
               type="button"
               onClick={runAllTests}
               disabled={isRunning}
+              className="btn btn-accent"
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
                 padding: '10px 20px',
-                borderRadius: 'var(--radius-full)',
-                background: 'linear-gradient(135deg, var(--accent-burgundy), #5A1212)',
-                color: '#FAF7F2',
-                fontFamily: 'var(--font-serif)',
-                fontWeight: 800,
                 fontSize: '0.82rem',
-                border: 'none',
-                cursor: isRunning ? 'not-allowed' : 'pointer',
-                boxShadow: 'var(--shadow-subtle)',
               }}
             >
-              <Play size={14} fill="#FAF7F2" />
+              <Play size={14} fill="currentColor" />
               {isRunning ? 'RUNNING SUITE...' : 'RUN ALL 25 TESTS'}
             </button>
           </div>
@@ -216,12 +199,13 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
               onClick={() => setCategoryFilter(cat.id)}
               style={{
                 padding: '4px 10px',
-                borderRadius: 'var(--radius-full)',
-                border: categoryFilter === cat.id ? '1px solid var(--accent-burgundy)' : '1px solid var(--border-subtle)',
-                background: categoryFilter === cat.id ? 'var(--accent-burgundy-light)' : 'transparent',
-                color: categoryFilter === cat.id ? 'var(--accent-burgundy)' : 'var(--text-secondary)',
+                borderRadius: 'var(--radius-sm)',
+                border: categoryFilter === cat.id ? '1px solid var(--accent)' : '1px solid var(--line)',
+                background: categoryFilter === cat.id ? 'var(--surface-2)' : 'transparent',
+                color: categoryFilter === cat.id ? 'var(--accent)' : 'var(--text-muted)',
                 fontSize: '0.72rem',
                 fontWeight: 700,
+                fontFamily: 'var(--font-display)',
                 cursor: 'pointer',
               }}
             >
@@ -231,15 +215,15 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
         </div>
 
         {/* Tests Table */}
-        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
+        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
             <thead>
-              <tr style={{ background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left' }}>
-                <th style={{ padding: '8px 12px', width: '70px' }}>ID</th>
-                <th style={{ padding: '8px 12px' }}>Proposal Prompt</th>
-                <th style={{ padding: '8px 12px', width: '90px' }}>Expected</th>
-                <th style={{ padding: '8px 12px', width: '90px' }}>Result</th>
-                <th style={{ padding: '8px 12px' }}>Engine Grounds / Reason</th>
+              <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--line)', textAlign: 'left' }}>
+                <th style={{ padding: '8px 12px', width: '70px', color: 'var(--text)' }}>ID</th>
+                <th style={{ padding: '8px 12px', color: 'var(--text)' }}>Proposal Prompt</th>
+                <th style={{ padding: '8px 12px', width: '90px', color: 'var(--text)' }}>Expected</th>
+                <th style={{ padding: '8px 12px', width: '90px', color: 'var(--text)' }}>Result</th>
+                <th style={{ padding: '8px 12px', color: 'var(--text)' }}>Engine Grounds / Reason</th>
               </tr>
             </thead>
             <tbody>
@@ -247,22 +231,23 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
                 const res = results[tc.id];
 
                 return (
-                  <tr key={tc.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                    <td style={{ padding: '8px 12px', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                  <tr key={tc.id} style={{ borderBottom: '1px solid var(--line)' }}>
+                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text)' }}>
                       {tc.id}
                     </td>
-                    <td style={{ padding: '8px 12px', fontFamily: 'var(--font-editorial)', fontStyle: 'italic' }}>
+                    <td style={{ padding: '8px 12px', fontFamily: 'var(--font-body)', fontStyle: 'italic', color: 'var(--text)' }}>
                       &ldquo;{tc.input}&rdquo;
                     </td>
                     <td style={{ padding: '8px 12px' }}>
                       <span
                         style={{
                           padding: '2px 6px',
-                          borderRadius: '4px',
+                          borderRadius: 'var(--radius-sm)',
                           fontWeight: 700,
                           fontSize: '0.68rem',
-                          background: tc.expectedStatus === 'accepted' ? 'var(--status-admitted-bg)' : 'var(--status-rejected-bg)',
-                          color: tc.expectedStatus === 'accepted' ? 'var(--status-admitted)' : 'var(--status-rejected)',
+                          background: 'var(--surface-2)',
+                          color: tc.expectedStatus === 'accepted' ? 'var(--ok)' : 'var(--danger)',
+                          border: `1px solid ${tc.expectedStatus === 'accepted' ? 'var(--ok)' : 'var(--danger)'}`,
                         }}
                       >
                         {tc.expectedStatus.toUpperCase()}
@@ -272,11 +257,11 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
                       {res ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           {res.passed ? (
-                            <CheckCircle2 size={16} style={{ color: 'var(--status-admitted)' }} />
+                            <CheckCircle2 size={16} style={{ color: 'var(--ok)' }} />
                           ) : (
-                            <XCircle size={16} style={{ color: 'var(--status-rejected)' }} />
+                            <XCircle size={16} style={{ color: 'var(--danger)' }} />
                           )}
-                          <span style={{ fontWeight: 700, fontSize: '0.7rem' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.7rem', color: 'var(--text)' }}>
                             {res.actualStatus.toUpperCase()}
                           </span>
                         </div>
@@ -284,7 +269,7 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
                         <span style={{ color: 'var(--text-muted)' }}>Pending</span>
                       )}
                     </td>
-                    <td style={{ padding: '8px 12px', color: 'var(--text-secondary)' }}>
+                    <td style={{ padding: '8px 12px', color: 'var(--text-muted)' }}>
                       {res ? res.actualReason : tc.notes}
                     </td>
                   </tr>
@@ -299,15 +284,10 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ config, onClos
           <button
             type="button"
             onClick={onClose}
+            className="btn btn-secondary"
             style={{
               padding: '8px 18px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--bg-subtle)',
-              border: '1px solid var(--border-strong)',
-              color: 'var(--text-primary)',
-              fontWeight: 700,
               fontSize: '0.8rem',
-              cursor: 'pointer',
             }}
           >
             Close Evaluation Suite

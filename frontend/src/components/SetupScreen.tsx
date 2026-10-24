@@ -4,7 +4,6 @@ import {
   DiceType,
   GameConfig,
   RuleMode,
-  ThemeMode,
 } from '../types/game';
 import { BUNDLED_RULEBOOKS } from '../data/rulebooks';
 import {
@@ -13,7 +12,6 @@ import {
   Trophy,
   Users,
   ScrollText,
-  Sparkles,
   Shuffle,
   ShieldCheck,
   Play,
@@ -23,17 +21,12 @@ import {
 
 interface SetupScreenProps {
   onStartGame: (config: GameConfig) => void;
-  currentTheme: ThemeMode;
-  onThemeToggle: () => void;
 }
 
-const DEFAULT_PLAYER_COLORS = ['#C43D3D', '#2B6CB0', '#2E7D32', '#8C439F'];
+const DEFAULT_PLAYER_COLORS = ['var(--p1)', 'var(--p2)', 'var(--p3)', 'var(--p4)'];
 const DEFAULT_AVATARS = ['⚖️', '📜', '🏛️', '🛡️'];
 
-export const SetupScreen: React.FC<SetupScreenProps> = ({
-  onStartGame,
-  currentTheme,
-}) => {
+export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame }) => {
   const [boardSize, setBoardSize] = useState<BoardSize>(36);
   const [dice, setDice] = useState<DiceType>('1d6');
   const [winTarget, setWinTarget] = useState<number>(15);
@@ -91,7 +84,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
         finalPlayers[finalPlayers.length - 1] = {
           id: 'p-gemma',
           name: 'Gemma (AI)',
-          color: '#D4881A',
+          color: 'var(--accent-2)',
           isGemma: true,
           avatar: '🤖',
         };
@@ -99,7 +92,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
         finalPlayers.push({
           id: 'p-gemma',
           name: 'Gemma (AI)',
-          color: '#D4881A',
+          color: 'var(--accent-2)',
           isGemma: true,
           avatar: '🤖',
         });
@@ -112,7 +105,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
       winTarget,
       players: finalPlayers,
       mode,
-      theme: currentTheme,
+      theme: 'light',
       selectedRulebookId: mode === 'hybrid' ? selectedRulebook.id : undefined,
       amendmentCadenceMoves: amendmentCadence,
       allowGemmaProposals: true,
@@ -132,29 +125,14 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
     >
       {/* Hero Welcome Banner */}
       <div
+        className="panel"
         style={{
-          background: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-subtle)',
           padding: '28px 32px',
           marginBottom: '24px',
-          boxShadow: 'var(--shadow-card)',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            top: '-20px',
-            right: '-20px',
-            opacity: 0.05,
-            pointerEvents: 'none',
-          }}
-        >
-          <ScrollText size={220} />
-        </div>
-
         <div style={{ maxWidth: '680px' }}>
           <div
             style={{
@@ -162,15 +140,16 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
               alignItems: 'center',
               gap: '6px',
               padding: '4px 12px',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--accent-gold-subtle)',
-              border: '1px solid var(--accent-gold)',
-              color: 'var(--accent-gold)',
+              borderRadius: 'var(--radius)',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--accent-2)',
+              color: 'var(--accent-2)',
               fontSize: '0.78rem',
               fontWeight: 700,
               marginBottom: '12px',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
+              fontFamily: 'var(--font-display)',
             }}
           >
             <ShieldCheck size={14} />
@@ -178,10 +157,10 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
           </div>
           <h2
             style={{
-              fontFamily: 'var(--font-serif)',
+              fontFamily: 'var(--font-display)',
               fontSize: '1.9rem',
               fontWeight: 800,
-              color: 'var(--text-primary)',
+              color: 'var(--text)',
               lineHeight: 1.2,
               marginBottom: '10px',
             }}
@@ -190,14 +169,14 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
           </h2>
           <p
             style={{
-              fontFamily: 'var(--font-editorial)',
+              fontFamily: 'var(--font-body)',
               fontSize: '1.05rem',
-              color: 'var(--text-secondary)',
+              color: 'var(--text-muted)',
               lineHeight: 1.6,
             }}
           >
-            In AMENDMENT, you don’t merely roll and move. You propose laws in plain English for your own strategic advantage.
-            The game’s AI judicial pipeline reviews your proposal against deterministic engine limits.
+            In AMENDMENT, you don&apos;t merely roll and move. You propose laws in plain English for your own strategic advantage.
+            The game&apos;s AI judicial pipeline reviews your proposal against deterministic engine limits.
             <strong> There is no voting</strong>: if the proposal passes constitutional scrutiny, the engine enforces it.
           </p>
         </div>
@@ -206,9 +185,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
         <div
           style={{
             marginTop: '20px',
-            background: simulateOffline ? 'var(--status-rejected-bg)' : 'var(--status-admitted-bg)',
-            border: `1px solid ${simulateOffline ? 'var(--status-rejected-border)' : 'var(--status-admitted-border)'}`,
-            borderRadius: 'var(--radius-md)',
+            background: 'var(--surface-2)',
+            border: `1px solid ${simulateOffline ? 'var(--danger)' : 'var(--ok)'}`,
+            borderRadius: 'var(--radius-sm)',
             padding: '12px 18px',
             display: 'flex',
             alignItems: 'center',
@@ -221,7 +200,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             <Cpu
               size={20}
               style={{
-                color: simulateOffline ? 'var(--status-rejected)' : 'var(--status-admitted)',
+                color: simulateOffline ? 'var(--danger)' : 'var(--ok)',
               }}
             />
             <div>
@@ -229,14 +208,15 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                 style={{
                   fontSize: '0.85rem',
                   fontWeight: 700,
-                  color: simulateOffline ? 'var(--status-rejected)' : 'var(--status-admitted)',
+                  color: simulateOffline ? 'var(--danger)' : 'var(--ok)',
+                  fontFamily: 'var(--font-display)',
                 }}
               >
                 {simulateOffline
                   ? 'Local AI Status: Simulated Offline (Fallback Demonstration)'
                   : 'Local AI Status: Gemma 2B/7B Ready via Ollama'}
               </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                 Deterministic parser and schema 1.0 validator active. Strategic self-benefit rules are admitted.
               </div>
             </div>
@@ -249,7 +229,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
               gap: '6px',
               fontSize: '0.78rem',
               cursor: 'pointer',
-              color: 'var(--text-secondary)',
+              color: 'var(--text-muted)',
               fontWeight: 600,
             }}
           >
@@ -257,12 +237,13 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
               type="checkbox"
               checked={simulateOffline}
               onChange={(e) => setSimulateOffline(e.target.checked)}
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: 'pointer', accentColor: 'var(--accent)' }}
             />
             Simulate Offline Model Failure
           </label>
         </div>
       </div>
+
 
       {/* Grid of Settings */}
       <div
@@ -275,17 +256,14 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
       >
         {/* Board Size */}
         <div
+          className="panel"
           style={{
-            background: 'var(--bg-surface)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-subtle)',
             padding: '20px',
-            boxShadow: 'var(--shadow-subtle)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-            <Grid size={18} style={{ color: 'var(--accent-burgundy)' }} />
-            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', fontWeight: 700 }}>
+            <Grid size={18} style={{ color: 'var(--accent)' }} />
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700 }}>
               Board Size
             </h3>
           </div>
@@ -297,12 +275,13 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                 onClick={() => setBoardSize(size)}
                 style={{
                   padding: '10px 4px',
-                  borderRadius: 'var(--radius-md)',
-                  border: boardSize === size ? '2px solid var(--accent-burgundy)' : '1px solid var(--border-subtle)',
-                  background: boardSize === size ? 'var(--accent-burgundy-light)' : 'var(--bg-subtle)',
-                  color: boardSize === size ? 'var(--accent-burgundy)' : 'var(--text-primary)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: boardSize === size ? '2px solid var(--accent)' : '1px solid var(--line)',
+                  background: boardSize === size ? 'var(--surface-2)' : 'var(--surface)',
+                  color: boardSize === size ? 'var(--accent)' : 'var(--text)',
                   fontWeight: 700,
                   fontSize: '0.85rem',
+                  fontFamily: 'var(--font-display)',
                   cursor: 'pointer',
                   textAlign: 'center',
                 }}
@@ -318,17 +297,14 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 
         {/* Dice Selection */}
         <div
+          className="panel"
           style={{
-            background: 'var(--bg-surface)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-subtle)',
             padding: '20px',
-            boxShadow: 'var(--shadow-subtle)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-            <Dices size={18} style={{ color: 'var(--accent-burgundy)' }} />
-            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', fontWeight: 700 }}>
+            <Dices size={18} style={{ color: 'var(--accent)' }} />
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700 }}>
               Dice Configuration
             </h3>
           </div>
@@ -340,12 +316,13 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                 onClick={() => setDice(d)}
                 style={{
                   padding: '10px 4px',
-                  borderRadius: 'var(--radius-md)',
-                  border: dice === d ? '2px solid var(--accent-burgundy)' : '1px solid var(--border-subtle)',
-                  background: dice === d ? 'var(--accent-burgundy-light)' : 'var(--bg-subtle)',
-                  color: dice === d ? 'var(--accent-burgundy)' : 'var(--text-primary)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: dice === d ? '2px solid var(--accent)' : '1px solid var(--line)',
+                  background: dice === d ? 'var(--surface-2)' : 'var(--surface)',
+                  color: dice === d ? 'var(--accent)' : 'var(--text)',
                   fontWeight: 700,
                   fontSize: '0.85rem',
+                  fontFamily: 'var(--font-display)',
                   cursor: 'pointer',
                   textAlign: 'center',
                 }}
@@ -361,27 +338,24 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 
         {/* Win Target */}
         <div
+          className="panel"
           style={{
-            background: 'var(--bg-surface)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-subtle)',
             padding: '20px',
-            boxShadow: 'var(--shadow-subtle)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Trophy size={18} style={{ color: 'var(--accent-gold)' }} />
-              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', fontWeight: 700 }}>
+              <Trophy size={18} style={{ color: 'var(--accent-2)' }} />
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700 }}>
                 Points to Win
               </h3>
             </div>
             <span
               style={{
-                fontFamily: 'var(--font-mono)',
+                fontFamily: 'monospace',
                 fontSize: '1.1rem',
                 fontWeight: 700,
-                color: 'var(--accent-gold)',
+                color: 'var(--accent-2)',
               }}
             >
               {winTarget} pts
@@ -396,7 +370,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             onChange={(e) => setWinTarget(parseInt(e.target.value, 10))}
             style={{
               width: '100%',
-              accentColor: 'var(--accent-gold)',
+              accentColor: 'var(--accent)',
               cursor: 'pointer',
             }}
           />
@@ -410,18 +384,15 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 
       {/* Mode Selection */}
       <div
+        className="panel"
         style={{
-          background: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)',
           padding: '22px',
           marginBottom: '24px',
-          boxShadow: 'var(--shadow-subtle)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-          <ScrollText size={18} style={{ color: 'var(--accent-burgundy)' }} />
-          <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.05rem', fontWeight: 700 }}>
+          <ScrollText size={18} style={{ color: 'var(--accent)' }} />
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', fontWeight: 700 }}>
             Rule Mode
           </h3>
         </div>
@@ -432,22 +403,38 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             onClick={() => setMode('live')}
             style={{
               padding: '16px',
-              borderRadius: 'var(--radius-md)',
-              border: mode === 'live' ? '2px solid var(--accent-burgundy)' : '1px solid var(--border-subtle)',
-              background: mode === 'live' ? 'var(--accent-burgundy-light)' : 'var(--bg-subtle)',
+              borderRadius: 'var(--radius)',
+              border: mode === 'live' ? '2px solid var(--accent)' : '1px solid var(--line)',
+              background: mode === 'live' ? 'var(--surface-2)' : 'var(--surface)',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontWeight: 800, fontSize: '0.95rem', color: mode === 'live' ? 'var(--accent-burgundy)' : 'var(--text-primary)' }}>
+              <span
+                style={{
+                  fontWeight: 800,
+                  fontSize: '0.95rem',
+                  fontFamily: 'var(--font-display)',
+                  color: mode === 'live' ? 'var(--accent)' : 'var(--text)',
+                }}
+              >
                 Live Mode
               </span>
-              <span style={{ fontSize: '0.68rem', padding: '2px 6px', background: 'var(--accent-gold)', color: '#fff', borderRadius: '4px', fontWeight: 700 }}>
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  padding: '2px 6px',
+                  background: 'var(--accent)',
+                  color: 'var(--accent-contrast)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontWeight: 700,
+                }}
+              >
                 RECOMMENDED
               </span>
             </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
               Rules evolve throughout play. Proposal window opens after player moves. Accepted rules take effect at the next-turn boundary.
             </p>
           </div>
@@ -457,17 +444,25 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             onClick={() => setMode('draft')}
             style={{
               padding: '16px',
-              borderRadius: 'var(--radius-md)',
-              border: mode === 'draft' ? '2px solid var(--accent-burgundy)' : '1px solid var(--border-subtle)',
-              background: mode === 'draft' ? 'var(--accent-burgundy-light)' : 'var(--bg-subtle)',
+              borderRadius: 'var(--radius)',
+              border: mode === 'draft' ? '2px solid var(--accent)' : '1px solid var(--line)',
+              background: mode === 'draft' ? 'var(--surface-2)' : 'var(--surface)',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
           >
-            <div style={{ fontWeight: 800, fontSize: '0.95rem', marginBottom: '6px', color: mode === 'draft' ? 'var(--accent-burgundy)' : 'var(--text-primary)' }}>
+            <div
+              style={{
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                marginBottom: '6px',
+                fontFamily: 'var(--font-display)',
+                color: mode === 'draft' ? 'var(--accent)' : 'var(--text)',
+              }}
+            >
               Draft Mode
             </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
               Players submit proposed rules before the first roll. AI checks each individually. No voting. Match begins with compiled rulebook.
             </p>
           </div>
@@ -477,17 +472,25 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             onClick={() => setMode('hybrid')}
             style={{
               padding: '16px',
-              borderRadius: 'var(--radius-md)',
-              border: mode === 'hybrid' ? '2px solid var(--accent-burgundy)' : '1px solid var(--border-subtle)',
-              background: mode === 'hybrid' ? 'var(--accent-burgundy-light)' : 'var(--bg-subtle)',
+              borderRadius: 'var(--radius)',
+              border: mode === 'hybrid' ? '2px solid var(--accent)' : '1px solid var(--line)',
+              background: mode === 'hybrid' ? 'var(--surface-2)' : 'var(--surface)',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
           >
-            <div style={{ fontWeight: 800, fontSize: '0.95rem', marginBottom: '6px', color: mode === 'hybrid' ? 'var(--accent-burgundy)' : 'var(--text-primary)' }}>
+            <div
+              style={{
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                marginBottom: '6px',
+                fontFamily: 'var(--font-display)',
+                color: mode === 'hybrid' ? 'var(--accent)' : 'var(--text)',
+              }}
+            >
               Hybrid Mode
             </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
               Loads a bundled curated rulebook from the library (e.g., Prime Tax, Catch-Up Doctrine). Host can preview and reroll.
             </p>
           </div>
@@ -499,38 +502,30 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             style={{
               marginTop: '16px',
               padding: '16px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--bg-surface-elevated)',
-              border: '1px solid var(--border-strong)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--line)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <div>
-                <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--accent-gold)', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--accent-2)', fontWeight: 700 }}>
                   Curated Rulebook Preview
                 </span>
-                <h4 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', fontWeight: 700 }}>
+                <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)' }}>
                   {selectedRulebook.title}
                 </h4>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                   {selectedRulebook.description} — By {selectedRulebook.author}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={handleRerollRulebook}
+                className="btn btn-secondary"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
                   padding: '8px 12px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--bg-surface)',
-                  border: '1px solid var(--border-strong)',
-                  color: 'var(--text-primary)',
                   fontSize: '0.78rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
                 }}
               >
                 <Shuffle size={14} />
@@ -545,13 +540,13 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                   style={{
                     padding: '8px 12px',
                     borderRadius: 'var(--radius-sm)',
-                    background: 'var(--bg-subtle)',
-                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--line)',
                     fontSize: '0.8rem',
                   }}
                 >
-                  <strong style={{ color: 'var(--accent-burgundy)' }}>{rule.title}: </strong>
-                  <span>{rule.readable_meaning}</span>
+                  <strong style={{ color: 'var(--accent)' }}>{rule.title}: </strong>
+                  <span style={{ color: 'var(--text)' }}>{rule.readable_meaning}</span>
                 </div>
               ))}
             </div>
@@ -560,8 +555,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 
         {/* Live Cadence Selection */}
         {mode === 'live' && (
-          <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-            <Info size={15} style={{ color: 'var(--accent-gold)' }} />
+          <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+            <Info size={15} style={{ color: 'var(--accent-2)' }} />
             <span>Proposal Cadence:</span>
             <button
               type="button"
@@ -569,9 +564,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
               style={{
                 padding: '4px 10px',
                 borderRadius: 'var(--radius-sm)',
-                border: amendmentCadence === 1 ? '2px solid var(--accent-burgundy)' : '1px solid var(--border-subtle)',
-                background: amendmentCadence === 1 ? 'var(--accent-burgundy-light)' : 'var(--bg-surface)',
-                color: amendmentCadence === 1 ? 'var(--accent-burgundy)' : 'var(--text-primary)',
+                border: amendmentCadence === 1 ? '2px solid var(--accent)' : '1px solid var(--line)',
+                background: amendmentCadence === 1 ? 'var(--surface-2)' : 'var(--surface)',
+                color: amendmentCadence === 1 ? 'var(--accent)' : 'var(--text)',
                 fontWeight: 700,
                 cursor: 'pointer',
               }}
@@ -584,9 +579,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
               style={{
                 padding: '4px 10px',
                 borderRadius: 'var(--radius-sm)',
-                border: amendmentCadence === 2 ? '2px solid var(--accent-burgundy)' : '1px solid var(--border-subtle)',
-                background: amendmentCadence === 2 ? 'var(--accent-burgundy-light)' : 'var(--bg-surface)',
-                color: amendmentCadence === 2 ? 'var(--accent-burgundy)' : 'var(--text-primary)',
+                border: amendmentCadence === 2 ? '2px solid var(--accent)' : '1px solid var(--line)',
+                background: amendmentCadence === 2 ? 'var(--surface-2)' : 'var(--surface)',
+                color: amendmentCadence === 2 ? 'var(--accent)' : 'var(--text)',
                 fontWeight: 700,
                 cursor: 'pointer',
               }}
@@ -599,19 +594,16 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 
       {/* Players Setup */}
       <div
+        className="panel"
         style={{
-          background: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)',
           padding: '22px',
           marginBottom: '28px',
-          boxShadow: 'var(--shadow-subtle)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Users size={18} style={{ color: 'var(--accent-burgundy)' }} />
-            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.05rem', fontWeight: 700 }}>
+            <Users size={18} style={{ color: 'var(--accent)' }} />
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', fontWeight: 700 }}>
               Legislators (Players)
             </h3>
           </div>
@@ -619,15 +611,10 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             <button
               type="button"
               onClick={handleAddPlayer}
+              className="btn btn-secondary"
               style={{
                 fontSize: '0.78rem',
-                fontWeight: 700,
                 padding: '6px 12px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border-strong)',
-                background: 'var(--bg-subtle)',
-                color: 'var(--text-primary)',
-                cursor: 'pointer',
               }}
             >
               + Add Player
@@ -644,8 +631,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                 alignItems: 'center',
                 gap: '8px',
                 padding: '10px 14px',
-                background: 'var(--bg-subtle)',
-                borderRadius: 'var(--radius-md)',
+                background: 'var(--surface-2)',
+                borderRadius: 'var(--radius)',
                 border: `2px solid ${player.color}`,
               }}
             >
@@ -659,12 +646,13 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                   flex: 1,
                   background: 'transparent',
                   border: 'none',
-                  borderBottom: '1px solid var(--border-subtle)',
+                  borderBottom: '1px solid var(--line)',
                   padding: '4px 6px',
                   fontWeight: 700,
                   fontSize: '0.9rem',
-                  color: 'var(--text-primary)',
+                  color: 'var(--text)',
                   outline: 'none',
+                  fontFamily: 'var(--font-body)',
                 }}
               />
               {playerList.length > 2 && (
@@ -693,9 +681,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
           style={{
             marginTop: '16px',
             padding: '12px 16px',
-            borderRadius: 'var(--radius-md)',
-            background: includeGemmaPlayer ? 'var(--accent-gold-subtle)' : 'transparent',
-            border: `1px solid ${includeGemmaPlayer ? 'var(--accent-gold)' : 'var(--border-subtle)'}`,
+            borderRadius: 'var(--radius)',
+            background: includeGemmaPlayer ? 'var(--surface-2)' : 'transparent',
+            border: `1px solid ${includeGemmaPlayer ? 'var(--accent-2)' : 'var(--line)'}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -704,10 +692,10 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '1.3rem' }}>🤖</span>
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text)', fontFamily: 'var(--font-display)' }}>
                 Enable Gemma AI Opponent
               </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                 Adds an autonomous Gemma player that rolls, takes turns, and submits strategic self-benefiting proposals.
               </div>
             </div>
@@ -716,7 +704,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             type="checkbox"
             checked={includeGemmaPlayer}
             onChange={(e) => setIncludeGemmaPlayer(e.target.checked)}
-            style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--accent-gold)' }}
+            style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--accent)' }}
           />
         </div>
       </div>
@@ -726,25 +714,14 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
         <button
           type="button"
           onClick={handleStart}
+          className="btn btn-accent"
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '10px',
             padding: '16px 42px',
-            borderRadius: 'var(--radius-full)',
-            background: 'linear-gradient(135deg, var(--accent-burgundy), #5A1212)',
-            color: '#FAF7F2',
             fontSize: '1.05rem',
-            fontFamily: 'var(--font-serif)',
-            fontWeight: 800,
             letterSpacing: '0.08em',
-            border: 'none',
-            cursor: 'pointer',
-            boxShadow: '0 6px 20px rgba(139, 30, 30, 0.35)',
-            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
           }}
         >
-          <Play size={20} fill="#FAF7F2" />
+          <Play size={20} fill="currentColor" />
           START MATCH
         </button>
       </div>
