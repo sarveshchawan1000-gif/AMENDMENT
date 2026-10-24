@@ -205,20 +205,20 @@ const WesternScrollFinial: React.FC<{ flip?: boolean }> = ({ flip }) => (
   >
     <defs>
       <linearGradient id="westFinialWood" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#240c03" />
-        <stop offset="12%" stopColor="#51220a" />
-        <stop offset="28%" stopColor="#96521a" />
-        <stop offset="46%" stopColor="#ebb659" />
-        <stop offset="54%" stopColor="#ffd982" />
-        <stop offset="64%" stopColor="#e3a647" />
-        <stop offset="78%" stopColor="#8c4714" />
-        <stop offset="90%" stopColor="#3d1604" />
-        <stop offset="100%" stopColor="#180501" />
+        <stop offset="0%" stopColor="#2c1004" />
+        <stop offset="12%" stopColor="#5d280c" />
+        <stop offset="28%" stopColor="#a35d1e" />
+        <stop offset="46%" stopColor="#f0bf67" />
+        <stop offset="54%" stopColor="#ffe294" />
+        <stop offset="64%" stopColor="#e7ad52" />
+        <stop offset="78%" stopColor="#995018" />
+        <stop offset="90%" stopColor="#481a05" />
+        <stop offset="100%" stopColor="#1e0701" />
       </linearGradient>
       <linearGradient id="westFinialDark" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#120401" />
-        <stop offset="50%" stopColor="#361505" />
-        <stop offset="100%" stopColor="#0d0200" />
+        <stop offset="0%" stopColor="#180702" />
+        <stop offset="50%" stopColor="#421b08" />
+        <stop offset="100%" stopColor="#140501" />
       </linearGradient>
     </defs>
     <path d="M 2,22 C 6,20 12,18 16,16 L 16,28 C 12,26 6,24 2,22 Z" fill="url(#westFinialWood)" />
@@ -235,33 +235,39 @@ const WesternScrollFinial: React.FC<{ flip?: boolean }> = ({ flip }) => (
 );
 
 /* ═══════════════════════════════════════════════════════
-   KINGDOM PARCHMENT STYLES
+   KINGDOM PARCHMENT STYLES (Light warm antique vellum + physical fiber texture)
 ═══════════════════════════════════════════════════════ */
+const PARCHMENT_FIBER_TEXTURE = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperGrain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.52 0 0 0 0 0.38 0 0 0 0 0.22 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperGrain)'/%3E%3C/svg%3E")`;
+
 const KINGDOM_PARCHMENT_BG = `
-  radial-gradient(ellipse 96% 14% at 50%   0%, rgba(30,10,2,0.92) 0%, rgba(65,24,6,0.55) 45%, transparent 100%),
-  radial-gradient(ellipse 96% 14% at 50% 100%, rgba(30,10,2,0.92) 0%, rgba(65,24,6,0.55) 45%, transparent 100%),
-  radial-gradient(ellipse 16% 90% at   0% 50%, rgba(45,16,4,0.90) 0%, rgba(95,40,12,0.65) 28%, rgba(145,75,22,0.25) 55%, transparent 100%),
-  radial-gradient(ellipse 16% 90% at 100% 50%, rgba(45,16,4,0.90) 0%, rgba(95,40,12,0.65) 28%, rgba(145,75,22,0.25) 55%, transparent 100%),
-  radial-gradient(ellipse 26% 28% at 4%   6%, rgba(130,55,14,0.70) 0%, transparent 65%),
-  radial-gradient(ellipse 26% 28% at 96%  6%, rgba(130,55,14,0.70) 0%, transparent 65%),
-  radial-gradient(ellipse 28% 30% at 4%  94%, rgba(125,50,12,0.70) 0%, transparent 65%),
-  radial-gradient(ellipse 28% 30% at 96% 94%, rgba(125,50,12,0.70) 0%, transparent 65%),
-  radial-gradient(ellipse at 50% 50%, #fff9e8 0%, #f7e8c2 30%, #ebd096 65%, #d6b05e 92%, #a8762c 100%)
+  ${PARCHMENT_FIBER_TEXTURE},
+  radial-gradient(ellipse 96% 12% at 50%   0%, rgba(95,50,18,0.30) 0%, rgba(145,85,32,0.12) 45%, transparent 100%),
+  radial-gradient(ellipse 96% 12% at 50% 100%, rgba(95,50,18,0.30) 0%, rgba(145,85,32,0.12) 45%, transparent 100%),
+  radial-gradient(ellipse 12% 92% at   0% 50%, rgba(115,62,22,0.25) 0%, rgba(165,100,40,0.10) 35%, transparent 100%),
+  radial-gradient(ellipse 12% 92% at 100% 50%, rgba(115,62,22,0.25) 0%, rgba(165,100,40,0.10) 35%, transparent 100%),
+  radial-gradient(ellipse 20% 22% at 4%   5%, rgba(145,85,30,0.16) 0%, transparent 68%),
+  radial-gradient(ellipse 20% 22% at 96%  5%, rgba(145,85,30,0.16) 0%, transparent 68%),
+  radial-gradient(ellipse 22% 24% at 4%  95%, rgba(140,80,28,0.16) 0%, transparent 68%),
+  radial-gradient(ellipse 22% 24% at 96% 95%, rgba(140,80,28,0.16) 0%, transparent 68%),
+  radial-gradient(ellipse at 50% 50%, #fffdf8 0%, #faf3e2 28%, #f4e6c8 58%, #ead2a6 84%, #dec08c 100%)
 `;
 
-const KINGDOM_ROLLER_VIGNETTE = `linear-gradient(to right, rgba(30,10,2,0.92) 0%, rgba(70,28,6,0.6) 5%, transparent 16%, transparent 84%, rgba(70,28,6,0.6) 95%, rgba(30,10,2,0.92) 100%)`;
-const KINGDOM_TOP_ROLLER_BG = `linear-gradient(to bottom, #2b1104 0%, #683010 10%, #ba722c 26%, #f5c46e 44%, #ffea9e 52%, #e5a746 62%, #9e5018 78%, #522006 90%, #1c0601 100%)`;
-const KINGDOM_BOT_ROLLER_BG = `linear-gradient(to bottom, #1a0601 0%, #481d08 12%, #9e5820 28%, #e8a648 46%, #ffe694 54%, #cf8832 66%, #8a4012 80%, #461604 92%, #140401 100%)`;
+const KINGDOM_ROLLER_VIGNETTE = `linear-gradient(to right, rgba(40,18,6,0.82) 0%, rgba(85,40,12,0.42) 5%, transparent 16%, transparent 84%, rgba(85,40,12,0.42) 95%, rgba(40,18,6,0.82) 100%)`;
+const KINGDOM_TOP_ROLLER_BG = `linear-gradient(to bottom, #321505 0%, #6e320e 10%, #bf7629 26%, #f6ca76 44%, #ffefb0 52%, #e5ad50 62%, #a7571a 78%, #562306 90%, #200801 100%)`;
+const KINGDOM_BOT_ROLLER_BG = `linear-gradient(to bottom, #200801 0%, #522108 12%, #a55f22 28%, #edaf52 46%, #ffeda2 54%, #d49138 66%, #964814 80%, #4c1a05 92%, #1a0501 100%)`;
 
+/* Organic deckled paper edge — subtle natural variations (0.2%-0.5%), NO geometric crisscross/sawtooth */
 const TORN_EDGE_CLIP = `polygon(
   0% 0%, 100% 0%,
-  99.3% 3%, 98.6% 7%, 99.8% 12%, 98.0% 17%, 99.2% 22%, 97.6% 28%,
-  99.0% 34%, 97.4% 40%, 99.5% 46%, 98.2% 52%, 99.4% 58%, 97.2% 64%,
-  98.9% 70%, 97.8% 76%, 99.6% 82%, 98.4% 88%, 99.2% 94%, 100% 100%,
+  99.8% 2%, 99.6% 4%, 99.7% 7%, 99.5% 10%, 99.8% 13%, 99.6% 16%, 99.5% 20%, 99.7% 23%,
+  99.8% 27%, 99.5% 30%, 99.7% 34%, 99.4% 38%, 99.7% 41%, 99.8% 45%, 99.6% 49%, 99.5% 53%,
+  99.7% 57%, 99.8% 61%, 99.5% 65%, 99.6% 69%, 99.4% 73%, 99.7% 77%, 99.8% 81%, 99.5% 85%,
+  99.7% 89%, 99.6% 93%, 99.8% 97%, 100% 100%,
   0% 100%,
-  0.8% 95%, 2.0% 89%, 0.5% 83%, 2.4% 77%, 1.0% 71%, 2.8% 65%,
-  0.7% 59%, 1.8% 53%, 0.4% 47%, 2.6% 41%, 0.9% 35%, 2.4% 29%,
-  0.5% 23%, 2.0% 17%, 0.7% 11%, 1.6% 5%, 0% 0%
+  0.2% 97%, 0.4% 94%, 0.3% 90%, 0.5% 87%, 0.2% 83%, 0.4% 79%, 0.5% 75%, 0.3% 72%,
+  0.2% 68%, 0.5% 64%, 0.3% 61%, 0.5% 57%, 0.2% 53%, 0.4% 49%, 0.5% 45%, 0.3% 42%,
+  0.2% 38%, 0.5% 34%, 0.3% 31%, 0.5% 27%, 0.2% 23%, 0.4% 19%, 0.5% 15%, 0.3% 12%,
+  0.2% 8%, 0.4% 5%, 0.2% 2%, 0% 0%
 )`;
 
 export const EvaluationModal: React.FC<EvaluationModalProps> = ({ onClose }) => {
@@ -591,8 +597,21 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({ onClose }) => 
               padding: '28px 42px 24px',
               display: 'flex', flexDirection: 'column',
               maxHeight: '68vh', overflowY: 'auto',
-              boxShadow: 'inset 0 24px 34px rgba(25,10,2,.55)',
+              boxShadow: 'inset 0 16px 26px rgba(60,30,10,.25), inset 0 -16px 26px rgba(60,30,10,.25)',
+              position: 'relative',
             }}>
+
+              {/* Textured deckle edge overlays (left & right natural paper fibers) */}
+              <div style={{
+                position: 'absolute', top: 0, bottom: 0, left: 0, width: 14,
+                background: 'linear-gradient(to right, rgba(135,78,28,0.22) 0%, rgba(175,115,48,0.06) 65%, transparent 100%)',
+                pointerEvents: 'none', zIndex: 1,
+              }} />
+              <div style={{
+                position: 'absolute', top: 0, bottom: 0, right: 0, width: 14,
+                background: 'linear-gradient(to left, rgba(135,78,28,0.22) 0%, rgba(175,115,48,0.06) 65%, transparent 100%)',
+                pointerEvents: 'none', zIndex: 1,
+              }} />
 
               {/* ── MANUSCRIPT HEADER ── */}
               <div style={{
