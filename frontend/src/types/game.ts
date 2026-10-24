@@ -14,6 +14,7 @@ export interface Player {
   isGemma: boolean;
   avatar: string;
   totalAmendmentsPassed: number;
+  movesPlayed: number;
 }
 
 export type RuleTrigger = 'on_roll' | 'on_land' | 'on_turn_start' | 'win_check';

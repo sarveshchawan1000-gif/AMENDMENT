@@ -454,6 +454,7 @@ export function executePlayerRollAndMove(
     [activePlayer.id]: (currentState.playerMoveCounts[activePlayer.id] ?? 0) + 1,
   };
   const thisPlayerMoveCount = updatedMoveCounts[activePlayer.id];
+  players[playerIdx].movesPlayed = thisPlayerMoveCount;
 
   // Determine whether this turn permits a proposal.
   // Cadence is checked PER-PLAYER (every N personal moves),

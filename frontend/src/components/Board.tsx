@@ -216,7 +216,7 @@ export const Board: React.FC<BoardProps> = ({
                     return (
                       <div
                         key={p.id}
-                        title={`${p.name} (Score: ${p.score})`}
+                        title={`${p.name} (Score: ${p.score}, Moves: ${p.movesPlayed ?? 0})`}
                         style={{
                           width: boardSize === 100 ? '18px' : boardSize === 64 ? '22px' : '26px',
                           height: boardSize === 100 ? '18px' : boardSize === 64 ? '22px' : '26px',

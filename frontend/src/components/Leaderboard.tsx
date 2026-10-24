@@ -155,7 +155,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                     </div>
 
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      Tile {player.position} of {boardSize} • {player.totalAmendmentsPassed} Amendment{player.totalAmendmentsPassed === 1 ? '' : 's'} Passed
+                      Tile {player.position} of {boardSize} • {player.movesPlayed ?? 0} {player.movesPlayed === 1 ? 'Move' : 'Moves'} • {player.totalAmendmentsPassed} Amendment{player.totalAmendmentsPassed === 1 ? '' : 's'} Passed
                     </div>
                   </div>
                 </div>

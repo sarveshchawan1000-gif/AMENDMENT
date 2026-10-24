@@ -94,6 +94,7 @@ export const App: React.FC = () => {
       score: 0,
       position: 1,
       totalAmendmentsPassed: 0,
+      movesPlayed: 0,
     }));
 
     let initialRules: CompiledRule[] = [...BASE_RULES];

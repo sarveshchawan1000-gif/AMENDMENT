@@ -116,7 +116,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             marginBottom: '20px',
           }}
         >
-          By strategic legislation and constitutional prowess, {winner.name} concluded the proceedings with {winner.score} points across {turnCount} turns.
+          By strategic legislation and constitutional prowess, {winner.name} concluded the proceedings with {winner.score} points across {winner.movesPlayed ?? 0} moves ({turnCount} match turns).
         </p>
 
         {/* Final Standings Table */}
@@ -153,6 +153,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
                   </span>
                   <span>{p.avatar}</span>
                   <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)' }}>{p.name}</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>({p.movesPlayed ?? 0} moves)</span>
                 </div>
                 <div style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '1rem', color: idx === 0 ? 'var(--accent-2)' : 'var(--text)' }}>
                   {p.score} pts

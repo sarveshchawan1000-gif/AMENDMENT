@@ -55,7 +55,7 @@ export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
         </div>
 
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span
               style={{
                 fontFamily: 'var(--font-display)',
@@ -65,6 +65,19 @@ export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
               }}
             >
               {activePlayer.name}&apos;s Turn
+            </span>
+            <span
+              style={{
+                fontSize: '0.72rem',
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--surface-2)',
+                border: '1px solid var(--line)',
+                color: 'var(--text-muted)',
+                fontWeight: 600,
+              }}
+            >
+              Moves: <strong style={{ color: 'var(--text)' }}>{activePlayer.movesPlayed ?? state.playerMoveCounts[activePlayer.id] ?? 0}</strong>
             </span>
             {activePlayer.isGemma && (
               <span
@@ -84,7 +97,7 @@ export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
           </div>
 
           <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-            {isWaitingForRoll && 'Roll the dice to advance your legislator token.'}
+            {isWaitingForRoll && `Ready for Move #${(activePlayer.movesPlayed ?? state.playerMoveCounts[activePlayer.id] ?? 0) + 1} — roll the dice to advance your legislator token.`}
             {isRolling && 'Rolling the assembly dice...'}
             {isEligibleToPropose && 'Cadence window open! You may submit a new amendment.'}
             {state.phase === 'moving' && 'Resolving movement and landing effects...'}

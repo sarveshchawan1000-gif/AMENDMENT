@@ -176,6 +176,12 @@ export const Header: React.FC<HeaderProps> = ({
           <span style={{ color: 'var(--line)' }}>•</span>
 
           <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            Moves: <strong style={{ color: 'var(--text)' }}>{activePlayer.movesPlayed ?? state.playerMoveCounts[activePlayer.id] ?? 0}</strong>
+          </span>
+
+          <span style={{ color: 'var(--line)' }}>•</span>
+
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
             Target: <strong style={{ color: 'var(--accent-2)' }}>{state.config.winTarget} pts</strong>
           </span>
         </div>
