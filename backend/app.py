@@ -6,6 +6,7 @@ Provides REST API for game creation, state retrieval, turn execution, and amendm
 
 import os
 import json
+import sys
 import random
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -13,15 +14,15 @@ from typing import Dict, List, Optional, Any
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+import jsonschema
 
 # Engine imports
 from backend.engine.state import create_game, add_amendment, select_rulebook
 from backend.engine.engine import execute_turn
-from backend.engine.validate import can_amend
+from backend.engine.validate import can_amend, validate_rule as engine_validate_rule
 
 # Court imports
 from backend.court.compiler import compile_amendment
-from backend.engine.validate import validate_rule
 
 
 # --- Configuration ---
@@ -122,22 +123,121 @@ class AmendResponse(BaseModel):
 
 # --- Helper Functions ---
 
-def load_rulebooks() -> List[dict]:
-    """Load all rulebooks from rulebooks/ directory."""
-    rulebooks_dir = Path("rulebooks")
+def get_project_root() -> Path:
+    """Get the project root directory (parent of backend/)."""
+    # backend/app.py -> backend/ -> project root
+    return Path(__file__).parent.parent
+
+
+def load_rulebook_schema() -> dict:
+    """Load and cache the rulebook JSON schema."""
+    schema_path = get_project_root() / "schema" / "rulebook.schema.json"
+
+    if not schema_path.exists():
+        print(f"Warning: Rulebook schema not found at {schema_path}", file=sys.stderr)
+        return {}
+
+    try:
+        with open(schema_path, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Warning: Failed to load rulebook schema: {e}", file=sys.stderr)
+        return {}
+
+
+def load_rulebooks(rulebooks_dir: Optional[Path] = None) -> List[dict]:
+    """
+    Load and validate all rulebooks from rulebooks/ directory.
+
+    Args:
+        rulebooks_dir: Optional directory path for testing. Defaults to project_root/rulebooks.
+
+    Returns:
+        List of valid rulebooks that passed schema and rule validation.
+    """
+    # Resolve rulebooks directory
+    if rulebooks_dir is None:
+        rulebooks_dir = get_project_root() / "rulebooks"
+
     if not rulebooks_dir.exists():
         return []
 
+    # Load JSON schema
+    schema = load_rulebook_schema()
+    if not schema:
+        print("Warning: No schema available, skipping schema validation", file=sys.stderr)
+
     rulebooks = []
-    for filepath in rulebooks_dir.glob("*.json"):
+
+    for filepath in sorted(rulebooks_dir.glob("*.json")):
         try:
+            # Load JSON
             with open(filepath, "r") as f:
-                rulebook = json.load(f)
-                # Basic validation - should have name and rules
-                if "name" in rulebook and "rules" in rulebook:
-                    rulebooks.append(rulebook)
-        except Exception:
-            # Skip invalid rulebooks
+                try:
+                    rulebook = json.load(f)
+                except json.JSONDecodeError as e:
+                    print(f"Skipping {filepath.name}: Malformed JSON - {e}", file=sys.stderr)
+                    continue
+
+            # Basic type check
+            if not isinstance(rulebook, dict):
+                print(f"Skipping {filepath.name}: Root is not a JSON object", file=sys.stderr)
+                continue
+
+            # Validate against JSON schema
+            if schema:
+                try:
+                    jsonschema.validate(rulebook, schema)
+                except jsonschema.ValidationError as e:
+                    print(f"Skipping {filepath.name}: Schema validation failed - {e.message}", file=sys.stderr)
+                    continue
+                except jsonschema.SchemaError as e:
+                    print(f"Skipping {filepath.name}: Schema error - {e}", file=sys.stderr)
+                    continue
+
+            # Validate required fields
+            if "name" not in rulebook:
+                print(f"Skipping {filepath.name}: Missing required field 'name'", file=sys.stderr)
+                continue
+
+            if "rules" not in rulebook:
+                print(f"Skipping {filepath.name}: Missing required field 'rules'", file=sys.stderr)
+                continue
+
+            if not isinstance(rulebook["rules"], list):
+                print(f"Skipping {filepath.name}: 'rules' must be an array", file=sys.stderr)
+                continue
+
+            # Validate board_sizes if present
+            if "board_sizes" in rulebook:
+                board_sizes = rulebook["board_sizes"]
+                if not isinstance(board_sizes, list):
+                    print(f"Skipping {filepath.name}: 'board_sizes' must be an array", file=sys.stderr)
+                    continue
+
+                # Check each board size is valid
+                for size in board_sizes:
+                    if size not in [6, 8, 10]:
+                        print(f"Skipping {filepath.name}: Invalid board size {size} (must be 6, 8, or 10)", file=sys.stderr)
+                        continue
+
+            # Validate each rule using engine validator
+            all_rules_valid = True
+            for idx, rule in enumerate(rulebook["rules"]):
+                valid, error = engine_validate_rule(rule)
+                if not valid:
+                    print(f"Skipping {filepath.name}: Rule {idx} invalid - {error}", file=sys.stderr)
+                    all_rules_valid = False
+                    break
+
+            if not all_rules_valid:
+                continue
+
+            # All validations passed
+            rulebooks.append(rulebook)
+
+        except Exception as e:
+            print(f"Skipping {filepath.name}: Unexpected error - {e}", file=sys.stderr)
             continue
 
     return rulebooks
@@ -338,7 +438,7 @@ async def submit_amendment(game_id: str, request: AmendRequest):
 
     # Compile amendment using the Court
     try:
-        court_response = compile_amendment(request.text, state, validate_rule)
+        court_response = compile_amendment(request.text, state, engine_validate_rule)
     except Exception as e:
         return AmendResponse(
             accepted=False,
