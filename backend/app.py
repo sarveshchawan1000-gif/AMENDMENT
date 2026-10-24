@@ -73,7 +73,7 @@ class GameSettings(BaseModel):
     """Game settings for game creation."""
     board_size: int = Field(..., description="Grid dimension: 6, 8, or 10")
     dice_type: str = Field(..., description="Dice configuration: 1d6, 2d6, or 1d12")
-    win_target: int = Field(..., description="Score needed to win (1-64)")
+    win_target: int = Field(..., description="Score needed to win (21-64)")
     mode: str = Field(..., description="Game mode: draft, live, or hybrid")
     max_rules: int = Field(..., description="Maximum rules (8, 12, or 16)")
     amend_every: Optional[int] = Field(None, description="For live mode: amend every N moves (1 or 2)")
@@ -280,10 +280,10 @@ async def create_new_game(request: CreateGameRequest):
             detail="dice_type must be '1d6', '2d6', or '1d12'"
         )
 
-    if not (1 <= settings_dict["win_target"] <= 64):
+    if not (21 <= settings_dict["win_target"] <= 64):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="win_target must be between 1 and 64"
+            detail="win_target must be between 21 and 64"
         )
 
     if settings_dict["mode"] not in ["draft", "live", "hybrid"]:
@@ -364,6 +364,11 @@ async def execute_player_turn(game_id: str, request: ExecuteTurnRequest):
     Execute the current player's turn.
 
     Validates that the specified player_id matches the current player.
+    Processes the dice roll, movement, and scoring.
+    
+    If an amendment opportunity is available after the roll, the API
+    rewinds current_player back to the player who just rolled, so they
+    can submit/pass their amendment before the turn truly ends.
     """
     if game_id not in games:
         raise HTTPException(
@@ -390,11 +395,22 @@ async def execute_player_turn(game_id: str, request: ExecuteTurnRequest):
             detail="Game is already finished"
         )
 
-    # Execute turn with injectable RNG
+    # Remember who rolled BEFORE executing
+    rolling_player_idx = current_player_idx
+
+    # Execute turn with injectable RNG (this advances current_player)
     rng = get_rng()
     execute_turn(state, rng)
 
     roll = state["last_roll"]
+
+    # Check if an amendment opportunity is available
+    amend_available, _ = can_amend(state)
+    
+    # If amendment is available and game isn't finished, rewind current_player
+    # back to the player who just rolled so they can amend
+    if amend_available and state["phase"] != "finished":
+        state["current_player"] = rolling_player_idx
 
     return ExecuteTurnResponse(state=state, roll=roll)
 
@@ -405,6 +421,14 @@ def _consume_live_amendment_opportunity(state: dict) -> None:
         state["moves_since_amend"] = 0
 
 
+def _advance_turn(state: dict) -> None:
+    """Advance current_player to the next player."""
+    if state["phase"] != "finished":
+        players = state["players"]
+        current_idx = state["current_player"]
+        state["current_player"] = (current_idx + 1) % len(players)
+
+
 @app.post("/game/{game_id}/amend", response_model=AmendResponse)
 async def submit_amendment(game_id: str, request: AmendRequest):
     """
@@ -412,6 +436,7 @@ async def submit_amendment(game_id: str, request: AmendRequest):
 
     Checks amendment eligibility, compiles the text using the Court,
     validates the rule, and adds it to the game state if accepted.
+    After handling the amendment, advances to the next player.
     """
     if game_id not in games:
         raise HTTPException(
@@ -454,6 +479,7 @@ async def submit_amendment(game_id: str, request: AmendRequest):
         court_response = compile_amendment(request.text, state, engine_validate_rule)
     except Exception as e:
         _consume_live_amendment_opportunity(state)
+        _advance_turn(state)
         return AmendResponse(
             accepted=False,
             rule=None,
@@ -464,6 +490,7 @@ async def submit_amendment(game_id: str, request: AmendRequest):
     # If Court rejected, return immediately
     if not court_response["accepted"]:
         _consume_live_amendment_opportunity(state)
+        _advance_turn(state)
         return AmendResponse(
             accepted=False,
             category=court_response.get("category"),
@@ -478,6 +505,7 @@ async def submit_amendment(game_id: str, request: AmendRequest):
 
     if not success:
         _consume_live_amendment_opportunity(state)
+        _advance_turn(state)
         return AmendResponse(
             accepted=False,
             rule=None,
@@ -487,6 +515,9 @@ async def submit_amendment(game_id: str, request: AmendRequest):
 
     # Close the opportunity after successful insertion.
     _consume_live_amendment_opportunity(state)
+    
+    # Advance to next player after amendment is handled
+    _advance_turn(state)
 
     # Return the rule with id assigned by engine
     added_rule = state["rules"][-1]
@@ -502,7 +533,7 @@ async def submit_amendment(game_id: str, request: AmendRequest):
 
 @app.post("/game/{game_id}/pass-amendment")
 async def pass_amendment(game_id: str, request: ExecuteTurnRequest):
-    """Pass a live-mode amendment opportunity without advancing the turn."""
+    """Pass a live-mode amendment opportunity and advance to the next player."""
     if game_id not in games:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -528,6 +559,7 @@ async def pass_amendment(game_id: str, request: ExecuteTurnRequest):
         return {"accepted": False, "error": reason, "state": state}
 
     _consume_live_amendment_opportunity(state)
+    _advance_turn(state)
     return {"accepted": True, "error": None, "state": state}
 
 

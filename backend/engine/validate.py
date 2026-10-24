@@ -12,8 +12,8 @@ VALID_PREDICATES = {"is_leader", "is_last", "roll_is_even",
 VALID_CONDITION_MODES = {"all", "any"}
 
 AMOUNT_CAP = 5          # effect amounts clamped to ±5
-WIN_TARGET_MIN = 5
-WIN_TARGET_MAX = 50
+WIN_TARGET_MIN = 21
+WIN_TARGET_MAX = 64
 
 
 # --- Validation ---------------------------------------------------------------

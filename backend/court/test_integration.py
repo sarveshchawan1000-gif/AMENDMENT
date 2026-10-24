@@ -210,12 +210,12 @@ def test_integration_set_win_target_valid(mock_get_provider, mock_state):
     mock_provider.generate.return_value = '''{
   "trigger": "win_check",
   "condition": {"mode": "all", "predicates": []},
-  "effect": {"type": "set_win_target", "amount": 20, "target": "self"}
+  "effect": {"type": "set_win_target", "amount": 30, "target": "self"}
 }'''
     mock_get_provider.return_value = mock_provider
     
     result = compile_amendment(
-        "Set win target to 20",
+        "Set win target to 30",
         mock_state,
         validate_rule
     )

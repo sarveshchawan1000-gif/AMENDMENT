@@ -4,6 +4,7 @@ import {
   rollBackendTurn,
   submitBackendAmendment,
   passBackendAmendment,
+  fetchBackendGame,
 } from './services/gameApi';
 import {
   CompiledRule,
@@ -34,10 +35,11 @@ import {
   submitProposalForAdmission,
 } from './services/admissionService';
 
+
 const INITIAL_CONFIG: GameConfig = {
   boardSize: 36,
   dice: '1d6',
-  winTarget: 15,
+  winTarget: 21,
   players: [
     { id: 'p1', name: 'Player 1', color: 'var(--p1)', isGemma: false, avatar: '⚖️' },
     { id: 'p2', name: 'Player 2', color: 'var(--p2)', isGemma: false, avatar: '📜' },
@@ -238,6 +240,7 @@ export const App: React.FC = () => {
 
     const backendState = response.state;
 
+    // Update players with backend state
     const updatedPlayers: Player[] = state.players.map((player) => {
       const backendPlayer = backendState.players.find(
         (candidate) => candidate.id === player.id,
@@ -257,30 +260,45 @@ export const App: React.FC = () => {
         (player) => player.id === backendState.winner,
       ) ?? null;
 
+    // The backend may keep current_player the same if an amendment is available
+    const backendActivePlayerIndex = backendState.current_player;
+
+    // Determine if an amendment opportunity is available
+    // Amendment is available if:
+    // 1. We're in live mode AND
+    // 2. moves_since_amend >= amend_every AND
+    // 3. current_player hasn't changed (backend kept it the same)
+    const amendmentAvailable =
+      !winner &&
+      state.config.mode === 'live' &&
+      backendState.moves_since_amend >= (backendState.settings.amend_every ?? 1) &&
+      backendActivePlayerIndex === state.activePlayerIndex;
+
     const nextState: GameState = {
       ...state,
       players: updatedPlayers,
-      activePlayerIndex: backendState.current_player,
-      turnCount: backendState.turn + 1,
+      activePlayerIndex: backendActivePlayerIndex,
+      turnCount: backendState.turn,
       currentDiceRoll: response.roll,
       winner,
-      phase:
-        backendState.phase === 'finished'
-          ? 'game_over'
-          : 'waiting_for_roll',
+      phase: backendState.phase === 'finished' ? 'game_over' : 'waiting_for_roll',
     };
+
+    console.log('[DEBUG] Roll response:', {
+      roll: response.roll,
+      backendP1Score: backendState.players[0].score,
+      backendP2Score: backendState.players[1].score,
+      updatedP1Score: updatedPlayers[0].score,
+      updatedP2Score: updatedPlayers[1].score,
+      currentPlayer: backendActivePlayerIndex,
+      moveSinceAmend: backendState.moves_since_amend,
+    });
 
     setState(nextState);
 
-    if (
-      !winner &&
-      nextState.config.mode === 'live' &&
-      backendState.moves_since_amend >=
-        (backendState.settings.amend_every ?? 1)
-    ) {
-      const proposer = updatedPlayers.find(
-        (player) => player.id === activePlayer.id,
-      );
+    // If amendment is available, show the composer
+    if (amendmentAvailable) {
+      const proposer = updatedPlayers[backendActivePlayerIndex];
 
       if (proposer) {
         setAmendmentProposerId(proposer.id);
@@ -327,6 +345,31 @@ export const App: React.FC = () => {
       }
     }
   }, [state.phase, state.activePlayerIndex, isRolling, state.winner]);
+
+  // Periodic polling to keep leaderboard up‑to‑date every second
+  useEffect(() => {
+    if (!backendGameId) return;
+    const interval = setInterval(() => {
+      void (async () => {
+        try {
+          const response = await fetchBackendGame(backendGameId);
+          const backendState = response.state;
+          setState((prev) => ({
+            ...prev,
+            players: prev.players.map((p) => {
+              const bp = backendState.players.find((bp) => bp.id === p.id);
+              return bp ? { ...p, score: bp.score, position: bp.position } : p;
+            }),
+            activePlayerIndex: backendState.current_player,
+            turnCount: backendState.turn,
+          }));
+        } catch (e) {
+          console.error('Failed to poll backend state:', e);
+        }
+      })();
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [backendGameId]);
 
   // Proposal Submission Handler: backend is authoritative.
   const handleProposalSubmit = async (
@@ -475,6 +518,9 @@ export const App: React.FC = () => {
         ),
         latestRuling: ruling,
         isInterpretingRule: false,
+        // Update active player and turn count from backend response
+        activePlayerIndex: response.state.current_player,
+        turnCount: response.state.turn,
       }));
     } catch (error) {
       const message = error instanceof Error
@@ -496,10 +542,29 @@ export const App: React.FC = () => {
     }
   };
 
-  // The backend already advanced the turn after the roll.
+  // The backend advances the turn after the amendment is handled.
+  // Just dismiss the modal and clear the proposer ID.
   const handleDismissRuling = () => {
     setShowRulingModal(false);
     setAmendmentProposerId(null);
+    
+    // Refresh the state to reflect the turn advancement
+    if (backendGameId) {
+      void (async () => {
+        try {
+          const response = await fetchBackendGame(backendGameId);
+          const backendState = response.state;
+          
+          setState((prev) => ({
+            ...prev,
+            activePlayerIndex: backendState.current_player,
+            turnCount: backendState.turn,
+          }));
+        } catch (error) {
+          console.error('Failed to refresh state after ruling:', error);
+        }
+      })();
+    }
   };
 
   // Passing must not advance the player a second time.
@@ -521,6 +586,13 @@ export const App: React.FC = () => {
 
       if (!response.accepted) {
         console.warn('Could not pass amendment:', response.error);
+      } else {
+        // Update state with backend response (turn has advanced)
+        setState((prev) => ({
+          ...prev,
+          activePlayerIndex: response.state.current_player,
+          turnCount: response.state.turn,
+        }));
       }
     } catch (error) {
       console.error('Failed to pass amendment:', error);

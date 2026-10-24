@@ -57,7 +57,7 @@ def test_create_game_draft_mode(client, deterministic_rng):
         "settings": {
             "board_size": 6,
             "dice_type": "1d6",
-            "win_target": 10,
+            "win_target": 25,
             "mode": "draft",
             "max_rules": 8,
             "amend_every": None
@@ -89,7 +89,7 @@ def test_create_game_live_mode(client, deterministic_rng):
         "settings": {
             "board_size": 8,
             "dice_type": "2d6",
-            "win_target": 15,
+            "win_target": 30,
             "mode": "live",
             "max_rules": 12,
             "amend_every": 2
@@ -114,7 +114,7 @@ def test_create_game_invalid_board_size(client):
         "settings": {
             "board_size": 7,  # Invalid
             "dice_type": "1d6",
-            "win_target": 10,
+            "win_target": 25,
             "mode": "draft",
             "max_rules": 8
         },
@@ -132,7 +132,7 @@ def test_create_game_insufficient_players(client):
         "settings": {
             "board_size": 6,
             "dice_type": "1d6",
-            "win_target": 10,
+            "win_target": 25,
             "mode": "draft",
             "max_rules": 8
         },
@@ -150,7 +150,7 @@ def test_get_game_state(client, deterministic_rng):
     """Should retrieve game state."""
     # Create game
     request_data = {
-        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 10, "mode": "draft", "max_rules": 8},
+        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 25, "mode": "draft", "max_rules": 8},
         "players": [{"id": "P1", "name": "Alice"}, {"id": "P2", "name": "Bob"}]
     }
     create_response = client.post("/game/new", json=request_data)
@@ -178,7 +178,7 @@ def test_execute_turn(client, deterministic_rng):
     """Should execute a turn successfully."""
     # Create game
     request_data = {
-        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 10, "mode": "draft", "max_rules": 8},
+        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 25, "mode": "draft", "max_rules": 8},
         "players": [{"id": "P1", "name": "Alice"}, {"id": "P2", "name": "Bob"}]
     }
     create_response = client.post("/game/new", json=request_data)
@@ -202,7 +202,7 @@ def test_execute_turn_wrong_player(client, deterministic_rng):
     """Should reject turn by non-current player."""
     # Create game
     request_data = {
-        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 10, "mode": "draft", "max_rules": 8},
+        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 25, "mode": "draft", "max_rules": 8},
         "players": [{"id": "P1", "name": "Alice"}, {"id": "P2", "name": "Bob"}]
     }
     create_response = client.post("/game/new", json=request_data)
@@ -227,7 +227,7 @@ def test_submit_amendment_accepted(mock_compile, client, deterministic_rng):
     """Should accept and add a valid amendment."""
     # Create game in draft mode
     request_data = {
-        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 10, "mode": "draft", "max_rules": 8},
+        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 25, "mode": "draft", "max_rules": 8},
         "players": [{"id": "P1", "name": "Alice"}, {"id": "P2", "name": "Bob"}]
     }
     create_response = client.post("/game/new", json=request_data)
@@ -268,7 +268,7 @@ def test_submit_amendment_rejected_by_court(mock_compile, client, deterministic_
     """Should reject invalid amendment."""
     # Create game
     request_data = {
-        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 10, "mode": "draft", "max_rules": 8},
+        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 25, "mode": "draft", "max_rules": 8},
         "players": [{"id": "P1", "name": "Alice"}, {"id": "P2", "name": "Bob"}]
     }
     create_response = client.post("/game/new", json=request_data)
@@ -303,7 +303,7 @@ def test_submit_amendment_not_allowed(client, deterministic_rng):
     # Create game in hybrid mode (need at least one rulebook)
     # For now, just test with playing mode without amendments
     request_data = {
-        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 10, "mode": "live", "max_rules": 8, "amend_every": 2},
+        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 25, "mode": "live", "max_rules": 8, "amend_every": 2},
         "players": [{"id": "P1", "name": "Alice"}, {"id": "P2", "name": "Bob"}]
     }
     create_response = client.post("/game/new", json=request_data)
@@ -325,7 +325,7 @@ def test_submit_amendment_nonexistent_player(client, deterministic_rng):
     """Should reject amendment from unknown player."""
     # Create game
     request_data = {
-        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 10, "mode": "draft", "max_rules": 8},
+        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 25, "mode": "draft", "max_rules": 8},
         "players": [{"id": "P1", "name": "Alice"}, {"id": "P2", "name": "Bob"}]
     }
     create_response = client.post("/game/new", json=request_data)
@@ -345,7 +345,7 @@ def test_submit_amendment_max_rules_reached(mock_compile, client, deterministic_
     """Should reject amendment when max rules reached."""
     # Create game with max_rules=8 (R2 + 7 amendments max)
     request_data = {
-        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 10, "mode": "draft", "max_rules": 8},
+        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 25, "mode": "draft", "max_rules": 8},
         "players": [{"id": "P1", "name": "Alice"}, {"id": "P2", "name": "Bob"}]
     }
     create_response = client.post("/game/new", json=request_data)
@@ -390,7 +390,7 @@ def test_submit_amendment_court_failure(mock_compile, client, deterministic_rng)
     """Should handle Court provider failure gracefully."""
     # Create game
     request_data = {
-        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 10, "mode": "draft", "max_rules": 8},
+        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 25, "mode": "draft", "max_rules": 8},
         "players": [{"id": "P1", "name": "Alice"}, {"id": "P2", "name": "Bob"}]
     }
     create_response = client.post("/game/new", json=request_data)
@@ -426,7 +426,7 @@ def test_full_game_flow(client, deterministic_rng):
     """Test complete game flow: create, amend, roll, check state."""
     # 1. Create game
     request_data = {
-        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 10, "mode": "draft", "max_rules": 8},
+        "settings": {"board_size": 6, "dice_type": "1d6", "win_target": 25, "mode": "draft", "max_rules": 8},
         "players": [{"id": "P1", "name": "Alice"}, {"id": "P2", "name": "Bob"}]
     }
     create_response = client.post("/game/new", json=request_data)

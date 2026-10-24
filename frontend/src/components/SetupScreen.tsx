@@ -28,7 +28,7 @@ const DEFAULT_AVATARS = ['⚖️', '📜', '🏛️', '🛡️'];
 export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame }) => {
   const [boardSize, setBoardSize] = useState<BoardSize>(36);
   const [dice, setDice] = useState<DiceType>('1d6');
-  const [winTarget, setWinTarget] = useState<number>(50);
+  const [winTarget, setWinTarget] = useState<number>(21);
   const [mode, setMode] = useState<RuleMode>('live');
   const [selectedRulebookIdx, setSelectedRulebookIdx] = useState<number>(0);
 
@@ -295,22 +295,110 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame }) => {
               {winTarget} pts
             </span>
           </div>
-          <input
-            type="range"
-            min={1}
-            max={64}
-            step={1}
-            value={winTarget}
-            onChange={(e) => setWinTarget(parseInt(e.target.value, 10))}
-            style={{
-              width: '100%',
-              accentColor: 'var(--accent)',
-              cursor: 'pointer',
-            }}
-          />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-            <span>1 (Blitz)</span>
-            <span>32 (Standard)</span>
+          
+          {/* Stepper Control */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: '16px',
+            padding: '12px',
+            background: 'var(--surface-2)',
+            borderRadius: 'var(--radius)',
+            border: '1px solid var(--line)',
+          }}>
+            <button
+              type="button"
+              onClick={() => setWinTarget(Math.max(21, winTarget - 1))}
+              disabled={winTarget <= 21}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--line)',
+                background: winTarget <= 21 ? 'var(--surface)' : 'var(--surface-2)',
+                color: winTarget <= 21 ? 'var(--text-muted)' : 'var(--text)',
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                cursor: winTarget <= 21 ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.15s ease',
+                opacity: winTarget <= 21 ? 0.4 : 1,
+              }}
+              onMouseEnter={(e) => {
+                if (winTarget > 21) {
+                  e.currentTarget.style.background = 'var(--accent)';
+                  e.currentTarget.style.color = 'var(--accent-contrast)';
+                  e.currentTarget.style.borderColor = 'var(--accent)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (winTarget > 21) {
+                  e.currentTarget.style.background = 'var(--surface-2)';
+                  e.currentTarget.style.color = 'var(--text)';
+                  e.currentTarget.style.borderColor = 'var(--line)';
+                }
+              }}
+            >
+              −
+            </button>
+            
+            <div style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1.8rem',
+              fontWeight: 800,
+              color: 'var(--accent)',
+              minWidth: '80px',
+              textAlign: 'center',
+              letterSpacing: '0.05em',
+            }}>
+              {winTarget}
+            </div>
+            
+            <button
+              type="button"
+              onClick={() => setWinTarget(Math.min(64, winTarget + 1))}
+              disabled={winTarget >= 64}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--line)',
+                background: winTarget >= 64 ? 'var(--surface)' : 'var(--surface-2)',
+                color: winTarget >= 64 ? 'var(--text-muted)' : 'var(--text)',
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                cursor: winTarget >= 64 ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.15s ease',
+                opacity: winTarget >= 64 ? 0.4 : 1,
+              }}
+              onMouseEnter={(e) => {
+                if (winTarget < 64) {
+                  e.currentTarget.style.background = 'var(--accent)';
+                  e.currentTarget.style.color = 'var(--accent-contrast)';
+                  e.currentTarget.style.borderColor = 'var(--accent)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (winTarget < 64) {
+                  e.currentTarget.style.background = 'var(--surface-2)';
+                  e.currentTarget.style.color = 'var(--text)';
+                  e.currentTarget.style.borderColor = 'var(--line)';
+                }
+              }}
+            >
+              +
+            </button>
+          </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+            <span>21 (Quick)</span>
+            <span>42 (Standard)</span>
             <span>64 (Marathon)</span>
           </div>
         </div>

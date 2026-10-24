@@ -53,7 +53,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {ranked.map((player, rankIndex) => {
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text)', marginBottom: '6px' }}>
+            Total Points: {players.reduce((sum, p) => sum + p.score, 0)}
+          </div>
+          {ranked.map((player, rankIndex) => {
           const isLeader = rankIndex === 0;
           const isLast = rankIndex === ranked.length - 1 && ranked.length > 1;
           const isActive = activePlayer && player.id === activePlayer.id;

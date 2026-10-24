@@ -44,7 +44,7 @@ Effect types:
 - move (amount ±5, target)
 - skip_turn (amount 0, target)
 - reroll (amount 0, target self)
-- set_win_target (amount 5-50, target ignored)
+- set_win_target (amount 21-64, target ignored)
 
 Targets: self, leader, last, all_others
 

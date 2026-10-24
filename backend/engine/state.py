@@ -37,15 +37,8 @@ def create_game(settings: dict, players: list[dict],
         for p in players
     ]
 
-    # Base rule R2 (immutable) — land on tile = +1 score
-    r2 = {
-        "id": "R2",
-        "trigger": "on_land",
-        "condition": {"mode": "all", "predicates": []},
-        "effect": {"type": "add_score", "amount": 1, "target": "self"},
-        "immutable": True,
-        "source": "Base rule R2",
-    }
+    # No base scoring rules - scoring happens only through player amendments
+    # Movement is determined by dice rolls, scoring by rules
 
     # Initial phase: draft mode starts drafting, others start playing
     phase = "drafting" if mode == "draft" else "playing"
@@ -72,7 +65,7 @@ def create_game(settings: dict, players: list[dict],
         "last_roll": None,
         "moves_since_amend": 0,
         "last_actor_id": None,
-        "rules": [r2] + extra_rules,
+        "rules": extra_rules,  # No R2 - only rulebook/amendment rules
         "log": [],
         "leaderboard": [],
         "winner": None,

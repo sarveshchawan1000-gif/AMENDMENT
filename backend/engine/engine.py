@@ -72,6 +72,9 @@ def execute_turn(state: dict, rng) -> dict:
     state["last_roll"] = roll_dice(state["settings"]["dice_type"], rng)
     ctx["last_roll"] = state["last_roll"]
 
+    # When you roll the dice, the points on the dice are added to your total points
+    acting_player["score"] += state["last_roll"]
+
     # --- Step 3: on_roll ---
     ctx["trigger"] = "on_roll"
     _fire_rules(state, ctx, "on_roll", turn)
