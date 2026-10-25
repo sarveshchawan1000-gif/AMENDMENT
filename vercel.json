@@ -1,7 +1,5 @@
 {
-  "version": 2,
-  "buildCommand": "cd frontend && npm install && npm run build",
-  "outputDirectory": "frontend/dist",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     { "source": "/game/(.*)", "destination": "/api/server.py" },
     { "source": "/court/(.*)", "destination": "/api/server.py" },

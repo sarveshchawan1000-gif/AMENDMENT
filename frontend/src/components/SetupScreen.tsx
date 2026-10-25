@@ -246,8 +246,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame }) => {
                 </span>
               ) : healthError ? (
                 <span style={{ color: '#dc2626' }}>
-                  Cannot connect to backend server on http://localhost:8000
+                  Cannot connect to backend server
                 </span>
+
               ) : (
                 'Connecting to Court AI health endpoint...'
               )}
