@@ -3,11 +3,12 @@
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
-    { "source": "/game/(.*)", "destination": "/api/index.py" },
-    { "source": "/court/(.*)", "destination": "/api/index.py" },
-    { "source": "/rulebooks", "destination": "/api/index.py" },
-    { "source": "/docs", "destination": "/api/index.py" },
-    { "source": "/openapi.json", "destination": "/api/index.py" },
-    { "source": "/(.*)", "destination": "/$1" }
+    { "source": "/game/(.*)", "destination": "/api/server.py" },
+    { "source": "/court/(.*)", "destination": "/api/server.py" },
+    { "source": "/rulebooks", "destination": "/api/server.py" },
+    { "source": "/api/(.*)", "destination": "/api/server.py" },
+    { "source": "/docs", "destination": "/api/server.py" },
+    { "source": "/openapi.json", "destination": "/api/server.py" },
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
   ]
 }

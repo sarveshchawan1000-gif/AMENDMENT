@@ -314,6 +314,8 @@ def load_rulebooks(rulebooks_dir: Optional[Path] = None) -> List[dict]:
 # --- API Endpoints ---
 
 @app.get("/")
+@app.get("/api")
+@app.get("/api/health")
 async def root():
     """Health check endpoint."""
     return {
