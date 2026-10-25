@@ -41,6 +41,22 @@ const RANDOM_NOUNS = [
   'Raven', 'Hawk', 'Panther', 'Tiger', 'Bear', 'Eagle', 'Stag', 'Advocate'
 ];
 
+/** Convert raw fetch / ApiError to a human-readable string. */
+function humanizeError(err: unknown, fallback: string): string {
+  if (err instanceof Error) {
+    const msg = err.message;
+    // Browser network errors
+    if (msg === 'Failed to fetch' || msg.includes('NetworkError') || msg.includes('network')) {
+      return 'Cannot reach the server — make sure the backend is running (uvicorn app:app --reload).';
+    }
+    if (msg.includes('ECONNREFUSED') || msg.includes('ERR_CONNECTION_REFUSED')) {
+      return 'Connection refused — the backend server is not running on the expected port.';
+    }
+    return msg || fallback;
+  }
+  return fallback;
+}
+
 export const AuthScreen: React.FC<AuthScreenProps> = ({
   onRoomJoined,
   onBypassToLocalPlay,
@@ -114,8 +130,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                   avatar_url: res.avatar_url,
                 });
               } catch (err: unknown) {
-                const message = err instanceof Error ? err.message : 'Google authentication failed';
-                setAuthError(message);
+                setAuthError(humanizeError(err, 'Google authentication failed'));
               } finally {
                 setIsSubmittingAuth(false);
               }
@@ -170,8 +185,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
         avatar_url: res.avatar_url,
       });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Guest sign-in failed';
-      setAuthError(message);
+      setAuthError(humanizeError(err, 'Guest sign-in failed'));
     } finally {
       setIsSubmittingAuth(false);
     }
@@ -306,8 +320,36 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           </p>
         </div>
 
+        {/* Session restore loading overlay */}
+        {isSessionLoading && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '14px',
+              padding: '40px 0',
+              color: 'var(--text-muted)',
+            }}
+          >
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                border: '3px solid var(--line)',
+                borderTopColor: 'var(--accent)',
+                animation: 'spin 0.8s linear infinite',
+              }}
+            />
+            <span style={{ fontSize: '0.85rem' }}>Restoring your session…</span>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        )}
+
         {/* STAGE 1: NOT AUTHENTICATED */}
-        {!user ? (
+        {!isSessionLoading && !user && (
           <div>
             {authError && (
               <div
@@ -477,8 +519,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               </button>
             </form>
           </div>
-        ) : (
-          /* STAGE 2: AUTHENTICATED -> CHOOSE ACTION (CREATE OR JOIN ROOM) */
+        )}
+
+        {/* STAGE 2: AUTHENTICATED -> CHOOSE ACTION (CREATE OR JOIN ROOM) */}
+        {!isSessionLoading && user && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
             {/* Authenticated Identity Pill */}
             <div
