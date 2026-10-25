@@ -45,14 +45,16 @@ app = FastAPI(
 )
 
 # CORS middleware for frontend integration
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
+raw_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+ALLOWED_ORIGINS = [o.strip() for o in raw_origins if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"] if "*" in ALLOWED_ORIGINS else ALLOWED_ORIGINS,
+    allow_credentials=True if "*" not in ALLOWED_ORIGINS else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # In-memory game storage (for hackathon MVP - replace with DB in production)
 games: Dict[str, dict] = {}

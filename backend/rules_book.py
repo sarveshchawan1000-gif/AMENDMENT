@@ -24,8 +24,17 @@ def get_rules_book_dir(custom_dir: Optional[Path] = None) -> Path:
     """Return the directory where Hybrid Rules Books are stored."""
     if custom_dir is not None:
         path = custom_dir
+    elif os.getenv("RULES_BOOK_DIR"):
+        path = Path(os.getenv("RULES_BOOK_DIR"))
+    elif os.getenv("VERCEL"):
+        path = Path("/tmp/rules_books")
     else:
-        path = get_project_root() / "data" / "rules_books"
+        try:
+            path = get_project_root() / "data" / "rules_books"
+            path.mkdir(parents=True, exist_ok=True)
+            return path
+        except (OSError, PermissionError):
+            path = Path("/tmp/rules_books")
     path.mkdir(parents=True, exist_ok=True)
     return path
 
