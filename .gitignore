@@ -1,6 +1,5 @@
 node_modules/
-dist/
-frontend/dist/
+/dist/
 frontend/.vite/
 .next/
 __pycache__/

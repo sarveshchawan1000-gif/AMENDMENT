@@ -42,7 +42,7 @@ def client():
 
 def test_root_endpoint(client):
     """Should return API info."""
-    response = client.get("/")
+    response = client.get("/api")
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "AMENDMENT API"
