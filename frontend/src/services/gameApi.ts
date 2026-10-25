@@ -1,5 +1,21 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.PROD ? '' : 'http://localhost:8000');
+const getNormalizedApiBaseUrl = (): string => {
+  let url = (import.meta.env.VITE_API_BASE_URL ?? '').trim();
+  if (!url) {
+    return import.meta.env.PROD ? '' : 'http://localhost:8000';
+  }
+  // Auto-prepend https:// if protocol was omitted
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `https://${url}`;
+  }
+  // Prevent Mixed Content error when frontend is on https and url is http (non-localhost)
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('http://') && !url.includes('localhost')) {
+    url = url.replace('http://', 'https://');
+  }
+  // Strip trailing slashes to prevent double slashes like //game/new
+  return url.replace(/\/+$/, '');
+};
+
+const API_BASE_URL = getNormalizedApiBaseUrl();
 
 export interface BackendPlayerInput {
   id: string;
