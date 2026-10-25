@@ -17,8 +17,8 @@ echo "Project root: ${PROJECT_ROOT}"
 echo ""
 
 # Check if dependencies are installed
-if ! python3 -c "import fastapi" 2>/dev/null; then
-    echo "⚠️  Dependencies not installed. Installing..."
+if ! python3 -c "import fastapi, jwt, websockets" 2>/dev/null; then
+    echo "⚠️  Dependencies not installed or missing packages. Installing..."
     if [ -f backend/requirements.txt ]; then
         pip3 install -r backend/requirements.txt -q
         echo "✅ Dependencies installed"
