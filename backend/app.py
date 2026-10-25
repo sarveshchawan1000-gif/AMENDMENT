@@ -64,6 +64,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from backend.auth import router as auth_router
+from backend.rooms import router as rooms_router
+
+app.include_router(auth_router)
+app.include_router(rooms_router)
+
 
 # In-memory game storage (for hackathon MVP - replace with DB in production)
 games: Dict[str, dict] = {}

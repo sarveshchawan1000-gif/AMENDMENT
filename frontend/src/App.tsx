@@ -29,6 +29,9 @@ import { RuleAutopsyModal } from './components/RuleAutopsyModal';
 import { EventHistoryFeed } from './components/EventHistoryFeed';
 import { GameOverModal } from './components/GameOverModal';
 import { EvaluationModal } from './components/EvaluationModal';
+import { RoomState, RoomPlayer } from './api/client';
+import { AuthScreen } from './screens/AuthScreen';
+import { LobbyScreen, GAME_ROUTE } from './screens/LobbyScreen';
 import {
   advanceTurnAfterAmendment,
   executePlayerRollAndMove,
@@ -79,6 +82,10 @@ export const App: React.FC = () => {
   const [showProposalComposer, setShowProposalComposer] = useState<boolean>(false);
   const [showRulingModal, setShowRulingModal] = useState<boolean>(false);
   const [showEvaluationModal, setShowEvaluationModal] = useState<boolean>(false);
+
+  // Pre-game Auth & Lobby routing
+  const [currentRoom, setCurrentRoom] = useState<RoomState | null>(null);
+  const [activeScreen, setActiveScreen] = useState<'auth' | 'lobby' | 'game'>('auth');
 
   // Hybrid Mode Rules Book state
   const [rulesBook, setRulesBook] = useState<RulesBookItem[]>([]);
@@ -162,6 +169,27 @@ export const App: React.FC = () => {
       events: [],
       rules: [...BASE_RULES],
     }));
+    setActiveScreen('auth');
+  };
+
+  const handleStartMultiplayerGame = (roomCode: string, players: RoomPlayer[]) => {
+    const colors = ['var(--p1)', 'var(--p2)', 'var(--p3)', 'var(--p4)'];
+    const avatars = ['⚖️', '📜', '🏛️', '🦅', '🦊', '⚡'];
+    const roomPlayers = players.map((p, idx) => ({
+      id: p.player_id,
+      name: p.nickname,
+      color: colors[idx % colors.length],
+      isGemma: false,
+      avatar: p.avatar_url || avatars[idx % avatars.length],
+    }));
+
+    const config: GameConfig = {
+      ...INITIAL_CONFIG,
+      players: roomPlayers,
+    };
+
+    setActiveScreen('game');
+    void handleStartGame(config);
   };
 
   const handleToggleAiOffline = () => {
@@ -729,24 +757,69 @@ export const App: React.FC = () => {
 
       {/* Main Container */}
       <main style={{ flex: 1, padding: '24px 20px', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>
-        {state.phase === 'setup' ? (
-          <SetupScreen onStartGame={handleStartGame} />
-        ) : state.phase === 'draft_stage' ? (
-          <DraftScreen
-            config={state.config}
-            players={state.players}
-            onStartMatch={handleDraftStartMatch}
-            onCancelDraft={() => setState((prev) => ({ ...prev, phase: 'setup' }))}
+        {activeScreen === 'auth' ? (
+          <AuthScreen
+            onRoomJoined={(room) => {
+              setCurrentRoom(room);
+              setActiveScreen('lobby');
+            }}
+            onBypassToLocalPlay={() => {
+              setActiveScreen('game');
+            }}
+          />
+        ) : activeScreen === 'lobby' && currentRoom ? (
+          <LobbyScreen
+            initialRoom={currentRoom}
+            onLeaveRoom={() => {
+              setCurrentRoom(null);
+              setActiveScreen('auth');
+            }}
+            onGameStarted={(roomCode, players) => {
+              handleStartMultiplayerGame(roomCode, players);
+            }}
           />
         ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1.25fr) minmax(320px, 1fr)',
-              gap: '24px',
-              alignItems: 'start',
-            }}
-          >
+          <>
+            <div style={{ marginBottom: '14px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setActiveScreen('auth')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--line)',
+                  color: 'var(--text-muted)',
+                  padding: '6px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: 'var(--panel-shadow)',
+                }}
+              >
+                🏛️ Chamber Lobby
+              </button>
+            </div>
+            {state.phase === 'setup' ? (
+              <SetupScreen onStartGame={handleStartGame} />
+            ) : state.phase === 'draft_stage' ? (
+              <DraftScreen
+                config={state.config}
+                players={state.players}
+                onStartMatch={handleDraftStartMatch}
+                onCancelDraft={() => setState((prev) => ({ ...prev, phase: 'setup' }))}
+              />
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(0, 1.25fr) minmax(320px, 1fr)',
+                  gap: '24px',
+                  alignItems: 'start',
+                }}
+              >
             {/* Left Column: Board + Action Bar + Proceedings Feed */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <Board
@@ -856,6 +929,8 @@ export const App: React.FC = () => {
             </div>
           </div>
         )}
+        </>
+      )}
       </main>
 
       {/* Proposal Composer Modal */}
