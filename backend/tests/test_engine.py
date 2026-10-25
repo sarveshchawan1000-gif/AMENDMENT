@@ -72,9 +72,9 @@ class TestMoveEffects:
         s = make_game_with(rules=[
             make_rule("on_land", "move", 2, "self"),
         ])
-        run(s, [3])  # 1→4 (dice), then 4→6 (amendment). R2 fires once.
+        run(s, [3])  # 1→4 (dice), then 4→6 (amendment). Roll 3 gives 3 points.
         assert s["players"][0]["position"] == 6
-        assert s["players"][0]["score"] == 1  # R2 only once, not re-triggered
+        assert s["players"][0]["score"] == 3  # dice roll 3
 
     def test_move_zero_net_stays(self):
         s = make_game_with(rules=[
@@ -82,7 +82,7 @@ class TestMoveEffects:
         ])
         run(s, [3])  # roll 3 + adj -3 = 0; stays at 1
         assert s["players"][0]["position"] == 1
-        assert s["players"][0]["score"] == 1  # on_land still fires
+        assert s["players"][0]["score"] == 3  # dice roll 3
 
     def test_move_negative_total(self):
         s = make_game_with(rules=[
@@ -100,35 +100,35 @@ class TestAddScore:
         s = make_game_with(rules=[
             make_rule("on_land", "add_score", 3, "self"),
         ])
-        run(s, [3])  # R2 +1, amendment +3 → score 4
-        assert s["players"][0]["score"] == 4
+        run(s, [3])  # roll 3, amendment +3 → score 6
+        assert s["players"][0]["score"] == 6
 
     def test_add_score_negative_floors_at_zero(self):
         s = make_game_with(scores=[5, 0], rules=[
             make_rule("on_land", "add_score", -3, "self"),
         ])
-        run(s, [3])  # R2 +1 (5→6), amendment -3 (6→3)
-        assert s["players"][0]["score"] == 3
+        run(s, [3])  # roll 3 (5→8), amendment -3 (8→5)
+        assert s["players"][0]["score"] == 5
 
     def test_add_score_floors_at_zero_from_zero(self):
         s = make_game_with(scores=[0, 0], rules=[
             make_rule("on_land", "add_score", -3, "self"),
         ])
-        run(s, [3])  # R2 +1 (0→1), amendment -3 (1→max(0,-2)=0)
+        run(s, [3])  # roll 3 (0→3), amendment -3 (3→0)
         assert s["players"][0]["score"] == 0
 
     def test_add_score_cap(self):
         s = make_game_with()
         add_raw(s, make_rule("on_land", "add_score", 10, "self"))  # bypass validation
-        run(s, [3])  # R2 +1, amendment clamped to +5 → score 6
-        assert s["players"][0]["score"] == 6
+        run(s, [3])  # roll 3, amendment clamped to +5 → score 8
+        assert s["players"][0]["score"] == 8
 
     def test_add_score_multi_target_leader(self):
         s = make_game3(scores=[5, 5, 5], rules=[
             make_rule("on_turn_start", "add_score", 2, "leader"),
         ])
         run(s, [3])  # all tied at 5 → all leaders → all get +2
-        assert s["players"][0]["score"] == 5 + 2 + 1  # +2 (leader) +1 (R2)
+        assert s["players"][0]["score"] == 5 + 2 + 3  # +2 (leader) +3 (roll)
         assert s["players"][1]["score"] == 5 + 2
         assert s["players"][2]["score"] == 5 + 2
 
@@ -141,32 +141,32 @@ class TestStealScore:
         s = make_game_with(scores=[5, 5], rules=[
             make_rule("on_land", "steal_score", 3, "all_others"),
         ])
-        run(s, [3])  # R2 +1 (5→6), steal 3 from P2: P1 6→9, P2 5→2
-        assert s["players"][0]["score"] == 9
+        run(s, [3])  # roll 3 (5→8), steal 3 from P2: P1 8→11, P2 5→2
+        assert s["players"][0]["score"] == 11
         assert s["players"][1]["score"] == 2
 
     def test_steal_score_floor_at_zero(self):
         s = make_game_with(scores=[0, 2], rules=[
             make_rule("on_land", "steal_score", 5, "all_others"),
         ])
-        run(s, [3])  # R2 +1 (0→1), steal min(5,2)=2: P1 1→3, P2 2→0
-        assert s["players"][0]["score"] == 3
+        run(s, [3])  # roll 3 (0→3), steal min(5,2)=2: P1 3→5, P2 2→0
+        assert s["players"][0]["score"] == 5
         assert s["players"][1]["score"] == 0
 
     def test_steal_score_self_target_noop(self):
         s = make_game_with(scores=[5, 5], rules=[
             make_rule("on_land", "steal_score", 3, "self"),
         ])
-        run(s, [3])  # R2 +1 (5→6), steal self = no-op
-        assert s["players"][0]["score"] == 6
+        run(s, [3])  # roll 3 (5→8), steal self = no-op
+        assert s["players"][0]["score"] == 8
         assert s["players"][1]["score"] == 5
 
     def test_steal_score_tied_targets(self):
         s = make_game3(scores=[10, 3, 3], rules=[
             make_rule("on_land", "steal_score", 2, "last"),
         ])
-        run(s, [3])  # R2 +1 (10→11), steal from first last by index (P2, idx 1)
-        assert s["players"][0]["score"] == 11 + 2  # +1 R2 +2 steal
+        run(s, [3])  # roll 3 (10→13), steal from first last by index (P2, idx 1)
+        assert s["players"][0]["score"] == 13 + 2  # +3 roll +2 steal
         assert s["players"][1]["score"] == 3 - 2    # stolen from
         assert s["players"][2]["score"] == 3        # not stolen from
 
@@ -220,8 +220,8 @@ class TestReroll:
             make_rule("on_roll", "reroll", 0, "self"),
         ])
         run(s, [3, 4])  # roll 3, reroll 4
-        # P1 score: only R2 +1 (amendment 1 did not fire, did not re-fire)
-        assert s["players"][0]["score"] == 1
+        # P1 score: reroll 4 sets score to 4
+        assert s["players"][0]["score"] == 4
 
 
 # === SET_WIN_TARGET ==========================================================
@@ -229,23 +229,23 @@ class TestReroll:
 class TestSetWinTarget:
 
     def test_set_win_target_immediate(self):
-        s = make_game_with(win_target=10, rules=[
-            make_rule("win_check", "set_win_target", 15, "self"),
+        s = make_game_with(win_target=25, rules=[
+            make_rule("win_check", "set_win_target", 30, "self"),
         ])
         run(s, [3])
-        assert s["settings"]["win_target"] == 15
+        assert s["settings"]["win_target"] == 30
 
     def test_set_win_target_clamp_low(self):
         s = make_game_with()
         add_raw(s, make_rule("win_check", "set_win_target", 3, "self"))
         run(s, [3])
-        assert s["settings"]["win_target"] == 5
+        assert s["settings"]["win_target"] == 21
 
     def test_set_win_target_clamp_high(self):
         s = make_game_with()
-        add_raw(s, make_rule("win_check", "set_win_target", 55, "self"))
+        add_raw(s, make_rule("win_check", "set_win_target", 100, "self"))
         run(s, [3])
-        assert s["settings"]["win_target"] == 50
+        assert s["settings"]["win_target"] == 64
 
 
 # === MAX_RULES ===============================================================
@@ -253,12 +253,13 @@ class TestSetWinTarget:
 class TestMaxRules:
 
     def test_max_rules_enforced(self):
-        s = make_game_with(max_rules=3)  # R2 + 2 amendments max
+        s = make_game_with(max_rules=3)
         ok1, _ = add_amendment(s, make_rule("on_turn_start", "add_score", 1, "self"))
         ok2, _ = add_amendment(s, make_rule("on_turn_start", "move", 1, "self"))
         ok3, _ = add_amendment(s, make_rule("on_turn_start", "skip_turn", 0, "self"))
-        assert ok1 and ok2
-        assert not ok3  # rejected at max
+        ok4, _ = add_amendment(s, make_rule("on_turn_start", "move", 2, "self"))
+        assert ok1 and ok2 and ok3
+        assert not ok4  # rejected at max
         assert len(s["rules"]) == 3
 
 
@@ -272,9 +273,9 @@ class TestConflictResolution:
             make_rule("on_land", "add_score", 1, "all_others"),
         ])
         run(s, [3])
-        # R2 (+1 self) + amendment1 (+1 self) → P1=2
+        # roll 3 + amendment1 (+1 self) → P1=4
         # amendment2 (+1 all_others) → P2=1
-        assert s["players"][0]["score"] == 2
+        assert s["players"][0]["score"] == 4
         assert s["players"][1]["score"] == 1
 
     def test_same_target_newer_wins(self):
@@ -283,17 +284,16 @@ class TestConflictResolution:
             make_rule("on_land", "add_score", 3, "self"),
         ])
         run(s, [3])
-        # R2 (+1) + newer amendment (+3) = 4; older (+2) suppressed
-        assert s["players"][0]["score"] == 4
+        # roll 3 + newer amendment (+3) = 6; older (+2) suppressed
+        assert s["players"][0]["score"] == 6
 
     def test_immutable_not_overridden(self):
-        # R2 (immutable, on_land/add_score/self/+1) + amendment (+3 same key)
         s = make_game_with(rules=[
             make_rule("on_land", "add_score", 3, "self"),
         ])
         run(s, [3])
-        # R2 +1 and amendment +3 both fire → 4
-        assert s["players"][0]["score"] == 4
+        # roll 3 + amendment +3 → 6
+        assert s["players"][0]["score"] == 6
 
     def test_immutable_stacks(self):
         s = make_game_with()
@@ -303,26 +303,26 @@ class TestConflictResolution:
         add_amendment(s, make_rule("on_turn_start", "add_score", 3, "self"))
         run(s, [3])
         # on_turn_start: IMM1 +2 and A1 +3 both fire (immutable stacks) → 5
-        # on_land: R2 +1 → total 6
-        assert s["players"][0]["score"] == 6
+        # roll 3 → total 8
+        assert s["players"][0]["score"] == 8
 
 
-# === BASE RULE R2 ============================================================
+# === DICE ROLL SCORING =======================================================
 
-class TestBaseRuleR2:
+class TestDiceRollScoring:
 
-    def test_landing_scores_one(self):
+    def test_dice_roll_scores_points(self):
         s = make_game_with()
         run(s, [3])
-        assert s["players"][0]["score"] == 1  # R2 gives exactly 1
+        assert s["players"][0]["score"] == 3  # roll 3 gives 3 points
 
-    def test_r2_fires_each_turn(self):
+    def test_dice_roll_scores_each_turn(self):
         s = make_game_with()
-        run(s, [3])  # P1 turn: score 1
-        run(s, [3])  # P2 turn: score 1
-        run(s, [3])  # P1 turn: score 2
-        assert s["players"][0]["score"] == 2
-        assert s["players"][1]["score"] == 1
+        run(s, [3])  # P1 turn: roll 3 → score 3
+        run(s, [4])  # P2 turn: roll 4 → score 4
+        run(s, [2])  # P1 turn: roll 2 → score 3 + 2 = 5
+        assert s["players"][0]["score"] == 5
+        assert s["players"][1]["score"] == 4
 
 
 # === WIN CHECK ===============================================================
@@ -330,28 +330,28 @@ class TestBaseRuleR2:
 class TestWinCheck:
 
     def test_win_check_sets_winner(self):
-        s = make_game_with(win_target=1)
-        run(s, [3])  # R2 gives +1, score=1 >= win_target=1
+        s = make_game_with(win_target=3)
+        run(s, [3])  # roll 3 >= win_target 3
         assert s["winner"] == "P1"
         assert s["phase"] == "finished"
 
     def test_win_turn_finalization(self):
-        # score_at_turn_start = 0; on_turn_start +1, R2 +1 → final 2
-        # win_target = 2 → wins. last_delta = 2-0 = 2
+        # score_at_turn_start = 0; on_turn_start +1, roll 3 → final 4
+        # win_target = 4 → wins. last_delta = 4-0 = 4
         # turn/moves/current_player NOT incremented/advanced
-        s = make_game_with(win_target=2, rules=[
+        s = make_game_with(win_target=4, rules=[
             make_rule("on_turn_start", "add_score", 1, "self"),
         ])
         turn_before = s["turn"]
         moves_before = s["moves_since_amend"]
         cp_before = s["current_player"]
         run(s, [3])
-        # score = 0 + 1 (turn_start) + 1 (R2) = 2 >= 2 → win
+        # score = 0 + 1 (turn_start) + 3 (roll) = 4 >= 4 → win
         assert s["winner"] == "P1"
         assert s["phase"] == "finished"
-        # last_delta includes all effects (on_turn_start + R2)
+        # last_delta includes all effects (on_turn_start + roll)
         lb = [e for e in s["leaderboard"] if e["player_id"] == "P1"][0]
-        assert lb["last_delta"] == 2
+        assert lb["last_delta"] == 4
         # NOT incremented / advanced
         assert s["turn"] == turn_before
         assert s["moves_since_amend"] == moves_before
@@ -367,53 +367,52 @@ class TestPredicates:
             make_rule("on_turn_start", "add_score", 1, "self",
                       predicates=[make_pred("is_leader")]),
         ])
-        run(s, [3])  # P1 is leader → +1, then R2 +1 → 12
-        assert s["players"][0]["score"] == 12
+        run(s, [3])  # P1 is leader → +1, then roll 3 → 14
+        assert s["players"][0]["score"] == 14
 
     def test_is_leader_false(self):
         s = make_game_with(scores=[3, 10], rules=[
             make_rule("on_turn_start", "add_score", 1, "self",
                       predicates=[make_pred("is_leader")]),
         ])
-        run(s, [3])  # P1 is NOT leader → no +1, only R2 → 4
-        assert s["players"][0]["score"] == 4
+        run(s, [3])  # P1 is NOT leader → no +1, only roll 3 → 6
+        assert s["players"][0]["score"] == 6
 
     def test_is_last_true(self):
         s = make_game_with(scores=[3, 10], rules=[
             make_rule("on_turn_start", "add_score", 1, "self",
                       predicates=[make_pred("is_last")]),
         ])
-        run(s, [3])  # P1 is last → +1, then R2 → 5
-        assert s["players"][0]["score"] == 5
+        run(s, [3])  # P1 is last → +1, then roll 3 → 7
+        assert s["players"][0]["score"] == 7
 
     def test_is_last_false(self):
         s = make_game_with(scores=[10, 3], rules=[
             make_rule("on_turn_start", "add_score", 1, "self",
                       predicates=[make_pred("is_last")]),
         ])
-        run(s, [3])  # P1 is NOT last → no +1, only R2 → 11
-        assert s["players"][0]["score"] == 11
+        run(s, [3])  # P1 is NOT last → no +1, only roll 3 → 13
+        assert s["players"][0]["score"] == 13
 
     def test_roll_is_even(self):
         s = make_game_with(rules=[
             make_rule("on_roll", "add_score", 2, "self",
                       predicates=[make_pred("roll_is_even")]),
         ])
-        run(s, [4])  # roll 4 is even → +2, then R2 +1 → 3
-        assert s["players"][0]["score"] == 3
+        run(s, [4])  # roll 4 is even → roll 4 + 2 = 6
+        assert s["players"][0]["score"] == 6
 
     def test_roll_is_odd(self):
         s = make_game_with(rules=[
             make_rule("on_roll", "add_score", 2, "self",
                       predicates=[make_pred("roll_is_even")]),
         ])
-        run(s, [3])  # roll 3 is odd → no +2, only R2 → 1
-        assert s["players"][0]["score"] == 1
+        run(s, [3])  # roll 3 is odd → no +2, only roll 3 → 3
+        assert s["players"][0]["score"] == 3
 
     def test_tile_is_prime(self):
         s = make_game_with()
         run(s, [2])  # 1+2=3, tile 3 is prime
-        # No amendment → just R2
         assert s["players"][0]["position"] == 3
         # Add amendment and rerun
         s2 = make_game_with(rules=[
@@ -428,16 +427,16 @@ class TestPredicates:
             make_rule("on_turn_start", "add_score", 1, "self",
                       predicates=[make_pred("score_gt", value=3)]),
         ])
-        run(s, [3])  # P1 score 5 > 3 → +1, then R2 → 7
-        assert s["players"][0]["score"] == 7
+        run(s, [3])  # P1 score 5 > 3 → +1, then roll 3 → 9
+        assert s["players"][0]["score"] == 9
 
     def test_score_gt_false(self):
         s = make_game_with(scores=[2, 0], rules=[
             make_rule("on_turn_start", "add_score", 1, "self",
                       predicates=[make_pred("score_gt", value=3)]),
         ])
-        run(s, [3])  # P1 score 2 not > 3 → no +1, only R2 → 3
-        assert s["players"][0]["score"] == 3
+        run(s, [3])  # P1 score 2 not > 3 → no +1, only roll 3 → 5
+        assert s["players"][0]["score"] == 5
 
 
 # === TURN ORDER ==============================================================
@@ -448,30 +447,31 @@ class TestTurnOrder:
         # roll_is_even at on_turn_start → False (no roll yet)
         s = make_game_with(rules=[
             make_rule("on_turn_start", "add_score", 5, "self",
-                      predicates=[make_pred("roll_is_even")]),
+                       predicates=[make_pred("roll_is_even")]),
         ])
         run(s, [4])  # on_turn_start has no roll → predicate False → no +5
-        assert s["players"][0]["score"] == 1  # only R2
+        assert s["players"][0]["score"] == 4  # only roll 4
 
     def test_full_turn_order(self):
         s = make_game_with(rules=[
             make_rule("on_turn_start", "add_score", 1, "self"),
             make_rule("on_roll", "move", 1, "self"),
             make_rule("on_land", "skip_turn", 0, "all_others"),
-            make_rule("win_check", "set_win_target", 15, "self"),
+            make_rule("win_check", "set_win_target", 25, "self"),
         ])
         run(s, [3])
         # on_turn_start: +1 → score 1
+        # roll: 3 → score 4
         # on_roll: move adjustment +1 → total 4, 1→5
-        # on_land: R2 +1 → score 2; skip P2
-        # win_check: win_target → 15
-        assert s["players"][0]["score"] == 2
+        # on_land: skip P2
+        # win_check: win_target → 25
+        assert s["players"][0]["score"] == 4
         assert s["players"][0]["position"] == 5  # 1 + (3 + 1) = 5
         assert s["players"][1]["skip_next"] is True
-        assert s["settings"]["win_target"] == 15
+        assert s["settings"]["win_target"] == 25
         # Verify log order
         ids = [e["rule_id"] for e in s["log"]]
-        assert ids == ["A1", "A2", "R2", "A3", "A4"]
+        assert ids == ["A1", "A2", "A3", "A4"]
 
 
 # === NO CHAINED EFFECTS ======================================================
@@ -482,8 +482,8 @@ class TestNoChainedEffects:
         s = make_game_with(rules=[
             make_rule("on_land", "move", 3, "self"),
         ])
-        run(s, [3])  # 1→4 (dice), then 4→7 (amendment). R2 fires once.
-        assert s["players"][0]["score"] == 1  # not 2
+        run(s, [3])  # 1→4 (dice), then 4→7 (amendment). Roll 3 gives 3 points.
+        assert s["players"][0]["score"] == 3
 
     def test_rule_fires_once_per_phase(self):
         s = make_game_with(rules=[
@@ -504,7 +504,7 @@ class TestLogging:
             make_rule("on_land", "add_score", 2, "self"),
         ])
         run(s, [3])
-        assert len(s["log"]) >= 2  # R2 + amendment
+        assert len(s["log"]) >= 1  # amendment
         for entry in s["log"]:
             assert set(entry.keys()) == {
                 "turn", "player", "rule_id", "effect",
@@ -533,7 +533,7 @@ class TestLogging:
 
     def test_log_details_set_win_target(self):
         s = make_game_with(rules=[
-            make_rule("win_check", "set_win_target", 15, "self"),
+            make_rule("win_check", "set_win_target", 25, "self"),
         ])
         run(s, [3])
         swt_log = [e for e in s["log"] if e["effect"] == "set_win_target"]
@@ -559,15 +559,15 @@ class TestLastDelta:
             assert e["last_delta"] == 0
 
     def test_last_delta_net_turn(self):
-        # on_turn_start +1, on_land R2 +1, amendment +2 → net 4
+        # on_turn_start +1, roll 3 (+3), amendment +2 → net 6
         s = make_game_with(rules=[
             make_rule("on_turn_start", "add_score", 1, "self"),
             make_rule("on_land", "add_score", 2, "self"),
         ])
         run(s, [3])
         lb = [e for e in s["leaderboard"] if e["player_id"] == "P1"][0]
-        # score = 0 + 1 + 1 + 2 = 4, last_delta = 4 - 0 = 4
-        assert lb["last_delta"] == 4
+        # score = 0 + 1 + 3 + 2 = 6, last_delta = 6 - 0 = 6
+        assert lb["last_delta"] == 6
 
 
 # === SKIP TURN COUNTERS ======================================================
@@ -661,10 +661,10 @@ class TestMultiTargetMaxImpact:
         ])
         run(s, [3])
         # All 3 tied at 5 → all leaders → each gets +5
-        # P1: 5+5 (leader) +1 (R2) = 11
+        # P1: 5+5 (leader) +3 (roll) = 13
         # P2: 5+5 = 10
         # P3: 5+5 = 10
-        assert s["players"][0]["score"] == 11
+        assert s["players"][0]["score"] == 13
         assert s["players"][1]["score"] == 10
         assert s["players"][2]["score"] == 10
 
@@ -674,7 +674,7 @@ class TestMultiTargetMaxImpact:
         ])
         run(s, [3])
         # All at 2 → all leaders → each gets max(0, 2+(-5))=0
-        # Then P1 rolls, R2 +1 → 1
-        assert s["players"][0]["score"] == 1  # 0 + R2
+        # Then P1 rolls 3 → score 3
+        assert s["players"][0]["score"] == 3
         assert s["players"][1]["score"] == 0
         assert s["players"][2]["score"] == 0

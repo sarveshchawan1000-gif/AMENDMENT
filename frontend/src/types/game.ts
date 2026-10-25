@@ -5,6 +5,23 @@ export type DiceType = '1d6' | '2d6' | '1d12';
 export type RuleMode = 'live' | 'draft' | 'hybrid';
 export type ThemeMode = 'light' | 'dark';
 
+export interface PointHistoryItem {
+  id: string;
+  turn: number;
+  type: 'dice_roll' | 'amendment';
+  title: string;
+  delta: number;
+  priorScore: number;
+  resultingScore: number;
+  details: string;
+  timestamp: number;
+  ruleId?: string;
+  ruleTitle?: string;
+  ruleSource?: string;
+  trigger?: string;
+  explanation?: string;
+}
+
 export interface Player {
   id: string;
   name: string;
@@ -14,6 +31,7 @@ export interface Player {
   isGemma: boolean;
   avatar: string;
   totalAmendmentsPassed: number;
+  pointHistory?: PointHistoryItem[];
 }
 
 export type RuleTrigger = 'on_roll' | 'on_land' | 'on_turn_start' | 'win_check';

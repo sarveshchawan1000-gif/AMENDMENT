@@ -203,7 +203,7 @@ class RulesBookResponse(BaseModel):
 def get_project_root() -> Path:
     """Get the project root directory (parent of backend/)."""
     # backend/app.py -> backend/ -> project root
-    return Path(__file__).parent.parent
+    return Path(__file__).resolve().parent.parent
 
 
 def load_rulebook_schema() -> dict:

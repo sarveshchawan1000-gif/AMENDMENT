@@ -2,7 +2,7 @@ import React from 'react';
 import { Player } from '../types/game';
 import { rankPlayers } from '../engine/gameEngine';
 import { useTheme } from '../theme/ThemeProvider';
-import { Trophy, Crown, Anchor } from 'lucide-react';
+import { Trophy, Crown, Anchor, History } from 'lucide-react';
 
 interface LeaderboardProps {
   players: Player[];
@@ -17,8 +17,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   activePlayerIndex,
   winTarget,
   boardSize,
+  onSelectPlayerHistory,
 }) => {
   const { theme } = useTheme();
+  const [hoveredPlayerId, setHoveredPlayerId] = React.useState<string | null>(null);
   const ranked = rankPlayers(players);
   const activePlayer = players[activePlayerIndex];
 
@@ -53,30 +55,49 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text)', marginBottom: '6px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text)', fontWeight: 600 }}>
             Total Points: {players.reduce((sum, p) => sum + p.score, 0)}
-          </div>
-          {ranked.map((player, rankIndex) => {
+          </span>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+            Click player for points history
+          </span>
+        </div>
+        {ranked.map((player, rankIndex) => {
           const isLeader = rankIndex === 0;
           const isLast = rankIndex === ranked.length - 1 && ranked.length > 1;
           const isActive = activePlayer && player.id === activePlayer.id;
+          const isHovered = hoveredPlayerId === player.id;
           const progressPercent = Math.min(100, Math.round((player.score / winTarget) * 100));
 
           return (
             <div
               key={player.id}
+              onClick={() => onSelectPlayerHistory?.(player.id)}
+              onMouseEnter={() => setHoveredPlayerId(player.id)}
+              onMouseLeave={() => setHoveredPlayerId(null)}
               style={{
                 borderRadius: 'var(--radius)',
-                background: isActive ? 'var(--surface-2)' : 'transparent',
-                border: isActive
+                background: isActive
+                  ? 'var(--surface-2)'
+                  : isHovered
+                  ? 'var(--surface-2)'
+                  : 'transparent',
+                border: isHovered
+                  ? `2px solid ${player.color}`
+                  : isActive
                   ? `2px solid ${player.color}`
                   : '1px solid var(--line)',
                 padding: '10px 14px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px',
+                cursor: 'pointer',
+                transform: isHovered ? 'translateY(-1px)' : 'none',
+                boxShadow: isHovered ? `0 4px 12px ${player.color}22` : 'none',
                 transition: 'all 0.15s ease',
               }}
+              title={`Click to view ${player.name}'s points history`}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 {/* Left: Rank, Avatar, Name */}
@@ -163,8 +184,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                   </div>
                 </div>
 
-                {/* Right: Score */}
-                <div style={{ textAlign: 'right' }}>
+                {/* Right: Score & History Cue */}
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
                   <div
                     style={{
                       fontFamily: 'monospace',
@@ -178,6 +199,18 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                     <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '2px' }}>
                       pts
                     </span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '0.65rem',
+                      color: isHovered ? 'var(--accent)' : 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      transition: 'color 0.15s ease',
+                    }}
+                  >
+                    <History size={10} /> Breakdown
                   </div>
                 </div>
               </div>

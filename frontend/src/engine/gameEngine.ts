@@ -4,6 +4,7 @@ import {
   GameEventLog,
   GameState,
   Player,
+  PointHistoryItem,
   RuleFiredSummary,
 } from '../types/game';
 import { isPrime } from '../services/admissionService';
@@ -176,6 +177,7 @@ export function executePlayerRollAndMove(
         if (targetIdx !== -1) {
           if (rule.effect === 'add_score') {
             const delta = Math.max(-5, Math.min(5, rule.effect_value));
+            const prevScore = players[targetIdx].score;
             players[targetIdx].score = Math.max(0, players[targetIdx].score + delta);
             turnStartFired.push({
               rule_id: rule.id,
@@ -185,6 +187,20 @@ export function executePlayerRollAndMove(
               score_delta: delta,
               target_player_id: players[targetIdx].id,
             });
+            players[targetIdx].pointHistory = [
+              ...(players[targetIdx].pointHistory || []),
+              {
+                id: `ph-turnstart-${Date.now()}-${rule.id}-${players[targetIdx].id}`,
+                turn: currentState.turnCount,
+                type: 'amendment',
+                title: rule.title || rule.id,
+                delta,
+                priorScore: prevScore,
+                resultingScore: players[targetIdx].score,
+                details: rule.readable_meaning || `Turn-start rule: ${delta > 0 ? `+${delta}` : delta} pts`,
+                timestamp: Date.now(),
+              },
+            ];
           } else if (rule.effect === 'move') {
             const mDelta = Math.max(-5, Math.min(5, rule.effect_value));
             let newPos = ((players[targetIdx].position - 1 + mDelta) % boardSize) + 1;
@@ -245,6 +261,7 @@ export function executePlayerRollAndMove(
         for (const t of targets) {
           const tIdx = players.findIndex((p) => p.id === t.id);
           if (tIdx !== -1) {
+            const prevScore = players[tIdx].score;
             players[tIdx].score = Math.max(0, players[tIdx].score + delta);
             rollFired.push({
               rule_id: rule.id,
@@ -254,6 +271,20 @@ export function executePlayerRollAndMove(
               score_delta: delta,
               target_player_id: players[tIdx].id,
             });
+            players[tIdx].pointHistory = [
+              ...(players[tIdx].pointHistory || []),
+              {
+                id: `ph-roll-${Date.now()}-${rule.id}-${players[tIdx].id}`,
+                turn: currentState.turnCount,
+                type: 'amendment',
+                title: rule.title || rule.id,
+                delta,
+                priorScore: prevScore,
+                resultingScore: players[tIdx].score,
+                details: rule.readable_meaning || `Roll effect: ${delta > 0 ? `+${delta}` : delta} pts`,
+                timestamp: Date.now(),
+              },
+            ];
           }
         }
       } else if (rule.effect === 'move') {
@@ -279,6 +310,8 @@ export function executePlayerRollAndMove(
           const lIdx = players.findIndex((p) => p.id === leader.id);
           const bIdx = players.findIndex((p) => p.id === beneficiary.id);
           if (lIdx !== -1 && bIdx !== -1) {
+            const lPrev = players[lIdx].score;
+            const bPrev = players[bIdx].score;
             players[lIdx].score -= actualStolen;
             players[bIdx].score += actualStolen;
             rollFired.push({
@@ -289,6 +322,34 @@ export function executePlayerRollAndMove(
               score_delta: actualStolen,
               target_player_id: beneficiary.id,
             });
+            players[lIdx].pointHistory = [
+              ...(players[lIdx].pointHistory || []),
+              {
+                id: `ph-steal-lost-${Date.now()}-${players[lIdx].id}`,
+                turn: currentState.turnCount,
+                type: 'amendment',
+                title: rule.title || 'Score Stolen',
+                delta: -actualStolen,
+                priorScore: lPrev,
+                resultingScore: players[lIdx].score,
+                details: `${actualStolen} pt(s) transferred to ${players[bIdx].name}`,
+                timestamp: Date.now(),
+              },
+            ];
+            players[bIdx].pointHistory = [
+              ...(players[bIdx].pointHistory || []),
+              {
+                id: `ph-steal-gained-${Date.now()}-${players[bIdx].id}`,
+                turn: currentState.turnCount,
+                type: 'amendment',
+                title: rule.title || 'Score Stolen',
+                delta: actualStolen,
+                priorScore: bPrev,
+                resultingScore: players[bIdx].score,
+                details: `${actualStolen} pt(s) transferred from ${players[lIdx].name}`,
+                timestamp: Date.now(),
+              },
+            ];
           }
         }
       }
@@ -303,6 +364,24 @@ export function executePlayerRollAndMove(
 
   const playerIdx = currentState.activePlayerIndex;
   players[playerIdx].position = endPos;
+
+  // Option A scoring: dice roll points added to score
+  const priorScoreBeforeDice = players[playerIdx].score;
+  players[playerIdx].score += diceTotal;
+  players[playerIdx].pointHistory = [
+    ...(players[playerIdx].pointHistory || []),
+    {
+      id: `ph-dice-${Date.now()}-${Math.random()}`,
+      turn: currentState.turnCount,
+      type: 'dice_roll',
+      title: `Dice Roll (${currentState.config.dice})`,
+      delta: diceTotal,
+      priorScore: priorScoreBeforeDice,
+      resultingScore: players[playerIdx].score,
+      details: `Rolled ${diceTotal} and advanced to tile ${endPos}`,
+      timestamp: Date.now(),
+    },
+  ];
 
   // Record roll and move event
   events.push({
@@ -335,21 +414,10 @@ export function executePlayerRollAndMove(
     timestamp: Date.now(),
   });
 
-  // --- STEP 5: Landing effects (R2 + on_land rules) ---
+  // --- STEP 5: Landing effects (on_land rules) ---
   const landingFired: RuleFiredSummary[] = [];
   const priorScoreBeforeLanding = players[playerIdx].score;
-
-  // Constitutional Base Rule R2: Landing score (+1 point)
-  let baseLandingScore = 1;
-  players[playerIdx].score += baseLandingScore;
-  landingFired.push({
-    rule_id: 'R2',
-    rule_title: 'Landing Score',
-    is_base_rule: true,
-    effect_summary: 'Constitutional Base Rule R2: +1 point for landing on a tile',
-    score_delta: 1,
-    target_player_id: activePlayer.id,
-  });
+  // Constitutional Base Rule R2 is removed per Option A scoring
 
   // Evaluate active on_land amendments
   const activeLandingRules = rules.filter(
@@ -364,6 +432,7 @@ export function executePlayerRollAndMove(
         for (const t of targets) {
           const tIdx = players.findIndex((p) => p.id === t.id);
           if (tIdx !== -1) {
+            const prevScore = players[tIdx].score;
             players[tIdx].score = Math.max(0, players[tIdx].score + delta);
             landingFired.push({
               rule_id: rule.id,
@@ -373,6 +442,20 @@ export function executePlayerRollAndMove(
               score_delta: delta,
               target_player_id: players[tIdx].id,
             });
+            players[tIdx].pointHistory = [
+              ...(players[tIdx].pointHistory || []),
+              {
+                id: `ph-land-${Date.now()}-${rule.id}-${players[tIdx].id}`,
+                turn: currentState.turnCount,
+                type: 'amendment',
+                title: rule.title || rule.id,
+                delta,
+                priorScore: prevScore,
+                resultingScore: players[tIdx].score,
+                details: rule.readable_meaning || `Landed on tile ${endPos}: ${delta > 0 ? `+${delta}` : delta} pts`,
+                timestamp: Date.now(),
+              },
+            ];
           }
         }
       } else if (rule.effect === 'move') {

@@ -41,11 +41,11 @@ def test_no_base_scoring():
     print(f"Last roll: {state['last_roll']}")
     print(f"P1 position: {state['players'][0]['position']}")
     
-    # Without R2, score should remain 0
-    assert state['players'][0]['score'] == 0, f"Expected P1 score to be 0, got {state['players'][0]['score']}"
+    # Under Option A, points equal the dice roll (no +1 landing point)
+    assert state['players'][0]['score'] == state['last_roll'], f"Expected P1 score to be {state['last_roll']}, got {state['players'][0]['score']}"
     # But position should have changed
     assert state['players'][0]['position'] > 1, f"Expected P1 position > 1, got {state['players'][0]['position']}"
-    print("✅ Backend scoring correctly removed - movement works, no auto-scoring!")
+    print("✅ Backend scoring works - movement works, dice points added!")
 
 
 if __name__ == "__main__":

@@ -314,6 +314,7 @@ def _apply_effect(effect: dict, state: dict, ctx: dict, turn: int) -> None:
             old = state["last_roll"]
             new = roll_dice(state["settings"]["dice_type"], ctx["rng"])
             state["last_roll"] = new
+            acting["score"] += (new - old)
             ctx["reroll_used"] = True
             ctx["last_roll"] = new
             details = f"roll {old}→{new}"

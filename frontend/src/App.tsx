@@ -13,6 +13,7 @@ import {
   GameConfig,
   GameState,
   Player,
+  PointHistoryItem,
 } from './types/game';
 import { BASE_RULES, BUNDLED_RULEBOOKS } from './data/rulebooks';
 import { Header } from './components/Header';
@@ -21,6 +22,7 @@ import { DraftScreen } from './components/DraftScreen';
 import { Board } from './components/Board';
 import { DiceAndControls } from './components/DiceAndControls';
 import { Leaderboard } from './components/Leaderboard';
+import { PlayerPointHistoryModal } from './components/PlayerPointHistoryModal';
 import { RuleLedger } from './components/RuleLedger';
 import { RulesBook } from './components/RulesBook';
 import { ProposalComposer } from './components/ProposalComposer';
@@ -79,6 +81,7 @@ export const App: React.FC = () => {
   const [showProposalComposer, setShowProposalComposer] = useState<boolean>(false);
   const [showRulingModal, setShowRulingModal] = useState<boolean>(false);
   const [showEvaluationModal, setShowEvaluationModal] = useState<boolean>(false);
+  const [selectedPlayerHistoryId, setSelectedPlayerHistoryId] = useState<string | null>(null);
 
   // Hybrid Mode Rules Book state
   const [rulesBook, setRulesBook] = useState<RulesBookItem[]>([]);
@@ -131,6 +134,7 @@ export const App: React.FC = () => {
               score: bp.score,
               position: bp.position,
               totalAmendmentsPassed: 0,
+              pointHistory: [],
             })),
             activePlayerIndex: backendState.current_player,
             turnCount: backendState.turn,
@@ -225,6 +229,7 @@ export const App: React.FC = () => {
       score: 0,
       position: 1,
       totalAmendmentsPassed: 0,
+      pointHistory: [],
     }));
 
     let initialRules: CompiledRule[] = [...BASE_RULES];
@@ -317,7 +322,26 @@ export const App: React.FC = () => {
 
     const backendState = response.state;
 
-    // Update players with backend state
+    // Track point history for players this turn
+    const diceDelta = response.roll;
+
+    // The turn just executed in backend (backend increments turn at turn end unless finished)
+    const executedTurn =
+      backendState.phase === 'finished'
+        ? backendState.turn
+        : backendState.turn - 1;
+
+    // Rule logs for this turn from backendState.log
+    const turnRuleLogs = (backendState.log || []).filter((entry: any) => {
+      return (
+        (entry.turn === executedTurn || entry.turn === backendState.turn) &&
+        (entry.effect === 'add_score' ||
+          entry.effect === 'steal_score' ||
+          entry.effect === 'reroll')
+      );
+    });
+
+    // Update players with backend state and point history
     const updatedPlayers: Player[] = state.players.map((player) => {
       const backendPlayer = backendState.players.find(
         (candidate) => candidate.id === player.id,
@@ -325,10 +349,171 @@ export const App: React.FC = () => {
 
       if (!backendPlayer) return player;
 
+      const priorScore = player.score;
+      const finalScore = backendPlayer.score;
+      const totalDelta = finalScore - priorScore;
+      const isRollingPlayer = player.id === activePlayer.id;
+      const playerDiceDelta = isRollingPlayer ? diceDelta : 0;
+      const expectedAmendmentDelta = totalDelta - playerDiceDelta;
+
+      const newHistoryItems: PointHistoryItem[] = [];
+      let currentScore = priorScore;
+
+      // 1. Record dice roll points for the active player
+      if (isRollingPlayer && diceDelta > 0) {
+        const nextScore = currentScore + diceDelta;
+        newHistoryItems.push({
+          id: `ph-dice-${Date.now()}-${executedTurn}-${player.id}`,
+          turn: executedTurn + 1,
+          type: 'dice_roll',
+          title: `Dice Roll (${state.config.dice})`,
+          delta: diceDelta,
+          priorScore: currentScore,
+          resultingScore: nextScore,
+          details: `Rolled ${diceDelta} on dice and advanced to tile ${backendPlayer.position}`,
+          timestamp: Date.now(),
+        });
+        currentScore = nextScore;
+      }
+
+      // 2. Identify amendment rule effects affecting this player
+      let loggedAmendmentDelta = 0;
+
+      for (const logItem of turnRuleLogs) {
+        let ruleDelta = 0;
+        let details = logItem.details as string | undefined;
+
+        if (logItem.effect === 'steal_score') {
+          if (logItem.player === player.id) {
+            ruleDelta = (logItem.after as number) - (logItem.before as number);
+          } else if (details && details.includes(`from ${player.id}`)) {
+            const match = details.match(/stole\s+(\d+)\s+from/);
+            const stolen = match ? parseInt(match[1], 10) : 1;
+            ruleDelta = -stolen;
+            details = `${stolen} pt(s) stolen by ${logItem.player}`;
+          }
+        } else if (logItem.effect === 'add_score') {
+          if (logItem.player === player.id) {
+            ruleDelta = (logItem.after as number) - (logItem.before as number);
+          } else if (details && details.includes('targets:') && details.includes(player.id)) {
+            ruleDelta = expectedAmendmentDelta;
+          }
+        } else if (logItem.effect === 'reroll' && logItem.player === player.id) {
+          ruleDelta = (logItem.after as number) - (logItem.before as number);
+        }
+
+        if (ruleDelta !== 0) {
+          loggedAmendmentDelta += ruleDelta;
+          const nextScore = currentScore + ruleDelta;
+
+          const ruleObj =
+            state.rules.find((r) => r.id === logItem.rule_id) ||
+            (backendState.rules || []).find((r: any) => r.id === logItem.rule_id);
+          const ruleId = ruleObj?.id || String(logItem.rule_id);
+          const ruleTitle =
+            ruleObj?.title ||
+            (ruleObj as any)?.original_text ||
+            (ruleObj as any)?.source ||
+            `Amendment ${ruleId}`;
+          const ruleSource =
+            (ruleObj as any)?.source ||
+            (ruleObj as any)?.original_text ||
+            (ruleObj as any)?.readable_meaning ||
+            `Effect: ${ruleDelta > 0 ? `+${ruleDelta}` : ruleDelta} pts`;
+          const ruleTrigger = ruleObj?.trigger || 'on_land';
+
+          // Build clear human explanation of why points were added or subtracted
+          let explanation = '';
+          const ptsWord = `${Math.abs(ruleDelta)} point${Math.abs(ruleDelta) === 1 ? '' : 's'}`;
+
+          if (logItem.effect === 'steal_score') {
+            if (ruleDelta > 0) {
+              const victimCandidate = details?.match(/stole\s+\d+\s+from\s+(\w+)/)?.[1];
+              const victimName = state.players.find((p) => p.id === victimCandidate)?.name || victimCandidate || 'opponent';
+              explanation = `Added ${ptsWord} transferred from ${victimName} to ${player.name} pursuant to ${ruleTitle}.`;
+            } else {
+              const thiefName = state.players.find((p) => p.id === logItem.player)?.name || logItem.player || 'leader';
+              explanation = `Subtracted ${ptsWord} transferred to ${thiefName} pursuant to ${ruleTitle}.`;
+            }
+          } else if (logItem.effect === 'add_score') {
+            const triggerDesc =
+              ruleTrigger === 'on_land'
+                ? `landing on tile ${backendPlayer.position}`
+                : ruleTrigger === 'on_roll'
+                ? `rolling ${diceDelta}`
+                : 'turn start';
+            explanation = `${ruleDelta > 0 ? `Added ${ptsWord}` : `Subtracted ${ptsWord}`} for ${player.name} upon ${triggerDesc} under ${ruleTitle}.`;
+          } else if (logItem.effect === 'reroll') {
+            explanation = `${ruleDelta > 0 ? `Added ${ptsWord}` : `Subtracted ${ptsWord}`} from dice reroll adjustment under ${ruleTitle}.`;
+          } else {
+            explanation = `${ruleDelta > 0 ? `Added ${ptsWord}` : `Subtracted ${ptsWord}`} under ${ruleTitle}.`;
+          }
+
+          newHistoryItems.push({
+            id: `ph-rule-${Date.now()}-${logItem.rule_id}-${player.id}-${newHistoryItems.length}`,
+            turn: executedTurn + 1,
+            type: 'amendment',
+            title: ruleTitle,
+            delta: ruleDelta,
+            priorScore: currentScore,
+            resultingScore: nextScore,
+            details: details || `${ruleDelta > 0 ? `+${ruleDelta}` : ruleDelta} pts from ${ruleTitle}`,
+            timestamp: Date.now() + newHistoryItems.length + 1,
+            ruleId: String(ruleId),
+            ruleTitle: String(ruleTitle),
+            ruleSource: String(ruleSource),
+            trigger: String(ruleTrigger),
+            explanation,
+          });
+          currentScore = nextScore;
+        }
+      }
+
+      // 3. Fallback / reconciliation: if backend score reflects amendment points
+      // not captured by individual logs, record the remaining amendment delta
+      const unloggedDelta = expectedAmendmentDelta - loggedAmendmentDelta;
+      if (unloggedDelta !== 0) {
+        const nextScore = currentScore + unloggedDelta;
+        const activeAmendment =
+          [...state.rules].reverse().find((r) => !r.is_base_rule && r.status === 'active') ||
+          [...(backendState.rules || [])].reverse().find((r: any) => !r.immutable);
+        const ruleId = activeAmendment?.id || 'A-Active';
+        const ruleTitle =
+          activeAmendment?.title ||
+          (activeAmendment as any)?.original_text ||
+          (activeAmendment as any)?.source ||
+          'Legislative Amendment';
+        const ruleSource =
+          (activeAmendment as any)?.source ||
+          (activeAmendment as any)?.original_text ||
+          (activeAmendment as any)?.readable_meaning ||
+          'Active amendment rule';
+        const ptsWord = `${Math.abs(unloggedDelta)} point${Math.abs(unloggedDelta) === 1 ? '' : 's'}`;
+        const explanation = `${unloggedDelta > 0 ? `Added ${ptsWord}` : `Subtracted ${ptsWord}`} for ${player.name} based on active amendment ${ruleTitle}.`;
+
+        newHistoryItems.push({
+          id: `ph-rule-recon-${Date.now()}-${executedTurn}-${player.id}`,
+          turn: executedTurn + 1,
+          type: 'amendment',
+          title: String(ruleTitle),
+          delta: unloggedDelta,
+          priorScore: currentScore,
+          resultingScore: nextScore,
+          details: `Amendment adjustment: ${unloggedDelta > 0 ? `+${unloggedDelta}` : unloggedDelta} pts`,
+          timestamp: Date.now() + newHistoryItems.length + 2,
+          ruleId: String(ruleId),
+          ruleTitle: String(ruleTitle),
+          ruleSource: String(ruleSource),
+          trigger: String(activeAmendment?.trigger || 'on_land'),
+          explanation,
+        });
+      }
+
       return {
         ...player,
         score: backendPlayer.score,
         position: backendPlayer.position,
+        pointHistory: [...(player.pointHistory || []), ...newHistoryItems],
       };
     });
 
@@ -776,6 +961,7 @@ export const App: React.FC = () => {
                 activePlayerIndex={state.activePlayerIndex}
                 winTarget={state.config.winTarget}
                 boardSize={state.config.boardSize}
+                onSelectPlayerHistory={(playerId) => setSelectedPlayerHistoryId(playerId)}
               />
 
               {state.config.mode === 'hybrid' ? (
@@ -908,6 +1094,15 @@ export const App: React.FC = () => {
           phase={state.phase}
           turnCount={state.turnCount}
           onClose={() => setShowEvaluationModal(false)}
+        />
+      )}
+
+      {/* Player Points History Modal */}
+      {selectedPlayerHistoryId && (
+        <PlayerPointHistoryModal
+          player={state.players.find((p) => p.id === selectedPlayerHistoryId) || null}
+          winTarget={state.config.winTarget}
+          onClose={() => setSelectedPlayerHistoryId(null)}
         />
       )}
     </div>

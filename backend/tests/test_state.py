@@ -52,14 +52,9 @@ class TestCreateGame:
             assert p["score"] == 0
             assert p["skip_next"] is False
 
-    def test_has_r2_immutable(self, game):
-        r2 = game["rules"][0]
-        assert r2["id"] == "R2"
-        assert r2["trigger"] == "on_land"
-        assert r2["effect"]["type"] == "add_score"
-        assert r2["effect"]["amount"] == 1
-        assert r2["effect"]["target"] == "self"
-        assert r2["immutable"] is True
+    def test_starts_with_no_base_rules(self, game):
+        # Scoring happens only through amendments
+        assert len(game["rules"]) == 0
 
     def test_settings_copied(self, settings, players):
         s = create_game(settings, players)
@@ -269,18 +264,18 @@ class TestAddAmendment:
         rule = make_rule("on_land", "add_score", 3, "self")
         ok, err = add_amendment(game, rule)
         assert ok and err is None
-        assert len(game["rules"]) == 2  # R2 + amendment
-        assert game["rules"][1]["id"] == "A1"
-        assert game["rules"][1]["immutable"] is False
+        assert len(game["rules"]) == 1
+        assert game["rules"][0]["id"] == "A1"
+        assert game["rules"][0]["immutable"] is False
 
     def test_second_amendment(self, game):
         add_amendment(game, make_rule("on_land", "add_score", 2, "self"))
         add_amendment(game, make_rule("on_land", "move", 1, "self"))
-        assert game["rules"][2]["id"] == "A2"
+        assert game["rules"][1]["id"] == "A2"
 
     def test_max_rules_rejected(self, game):
-        # max_rules=8, R2 takes 1, so 7 amendments fit
-        for i in range(7):
+        # max_rules=8, so 8 amendments fit
+        for i in range(8):
             add_amendment(game, make_rule("on_turn_start", "add_score", 1, "self"))
         assert len(game["rules"]) == 8
         ok, err = add_amendment(game, make_rule("on_turn_start", "add_score", 1, "self"))
