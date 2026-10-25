@@ -7,6 +7,11 @@ __pycache__/
 .pytest_cache/
 .venv/
 .env
+.env.*
+*.env
+*.env.*
+!.env.example
+!backend/.env.example
 *.bak
 *.backup*
 .DS_Store
