@@ -24,7 +24,8 @@ import {
   AlertCircle,
   PlusCircle,
   LogIn,
-  Info
+  Info,
+  Users
 } from 'lucide-react';
 
 interface AuthScreenProps {
@@ -61,7 +62,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   onRoomJoined,
   onBypassToLocalPlay,
 }) => {
-  const { user, login, logout, isLoading: isSessionLoading } = useSession();
+  const { user, login, logout, isLoading: isSessionLoading, createTabGuestSession } = useSession();
 
   // Auth form state
   const [nickname, setNickname] = useState<string>('');
@@ -73,6 +74,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   const [roomError, setRoomError] = useState<string | null>(null);
   const [isCreatingRoom, setIsCreatingRoom] = useState<boolean>(false);
   const [isJoiningRoom, setIsJoiningRoom] = useState<boolean>(false);
+  const [isCreatingTabPlayer, setIsCreatingTabPlayer] = useState<boolean>(false);
+  const [selfJoinDetected, setSelfJoinDetected] = useState<{
+    roomCode: string;
+    hostNickname: string;
+    room: RoomState;
+  } | null>(null);
 
   const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim();
 
@@ -209,26 +216,52 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     }
   };
 
+  const handleNewTabIdentity = async () => {
+    setIsCreatingTabPlayer(true);
+    setRoomError(null);
+    setSelfJoinDetected(null);
+    try {
+      await createTabGuestSession();
+    } catch (err: unknown) {
+      setRoomError(humanizeError(err, 'Failed to create new tab guest.'));
+    } finally {
+      setIsCreatingTabPlayer(false);
+    }
+  };
+
   const handleJoinRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     const trimmedCode = roomCode.trim().toUpperCase();
     if (trimmedCode.length !== 6) {
-      setRoomError('Room code must be exactly 6 characters.');
+      setRoomError('Chamber code must be exactly 6 characters.');
       return;
     }
 
     setIsJoiningRoom(true);
     setRoomError(null);
+    setSelfJoinDetected(null);
 
     try {
       const room = await joinRoom(trimmedCode, user.player_id);
+
+      // Detect if caller is the host and only player in the room (i.e. testing on same machine from second tab)
+      if (room.host_id === user.player_id && room.players.length === 1) {
+        setSelfJoinDetected({
+          roomCode: trimmedCode,
+          hostNickname: user.nickname,
+          room,
+        });
+        setIsJoiningRoom(false);
+        return;
+      }
+
       onRoomJoined(room);
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         if (err.code === 'ROOM_NOT_FOUND') {
-          setRoomError(`Chamber "${trimmedCode}" does not exist. Check the code and try again.`);
+          setRoomError(`Chamber "${trimmedCode}" does not exist. (If the backend was restarted, previous chambers were reset)`);
         } else if (err.code === 'ROOM_FULL') {
           setRoomError(`Chamber "${trimmedCode}" is already full (maximum capacity reached).`);
         } else if (err.code === 'GAME_ALREADY_STARTED') {
@@ -242,6 +275,27 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     } finally {
       setIsJoiningRoom(false);
     }
+  };
+
+  const handleJoinAsSecondPlayer = async () => {
+    if (!selfJoinDetected) return;
+    setIsJoiningRoom(true);
+    setRoomError(null);
+    try {
+      const newProfile = await createTabGuestSession();
+      const joinedRoom = await joinRoom(selfJoinDetected.roomCode, newProfile.player_id);
+      setSelfJoinDetected(null);
+      onRoomJoined(joinedRoom);
+    } catch (err: unknown) {
+      setRoomError(humanizeError(err, 'Failed to join chamber as second player.'));
+    } finally {
+      setIsJoiningRoom(false);
+    }
+  };
+
+  const handleContinueAsHost = () => {
+    if (!selfJoinDetected) return;
+    onRoomJoined(selfJoinDetected.room);
   };
 
   const isNicknameValid = nickname.length <= 20;
@@ -574,7 +628,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 
               <button
                 type="button"
-                onClick={logout}
+                onClick={() => logout()}
                 title="Sign out or switch identity"
                 style={{
                   display: 'flex',
@@ -594,6 +648,45 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               </button>
             </div>
 
+            {/* Same-machine multi-tab testing helper */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '9px 12px',
+                background: 'var(--surface-2)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--line)',
+                fontSize: '0.78rem',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <span>Testing 2 tabs on this computer?</span>
+              <button
+                type="button"
+                onClick={handleNewTabIdentity}
+                disabled={isCreatingTabPlayer}
+                title="Generates an independent player identity for this tab only, keeping other tabs intact"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: 'none',
+                  border: '1px solid var(--accent)',
+                  color: 'var(--accent)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '3px 8px',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  cursor: isCreatingTabPlayer ? 'wait' : 'pointer',
+                }}
+              >
+                <Users size={12} />
+                <span>{isCreatingTabPlayer ? 'Generating...' : '+ New Tab Player'}</span>
+              </button>
+            </div>
+
             {roomError && (
               <div
                 style={{
@@ -610,6 +703,67 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               >
                 <AlertCircle size={18} style={{ flexShrink: 0 }} />
                 <span>{roomError}</span>
+              </div>
+            )}
+
+            {/* Self-join / Same machine host warning & resolution */}
+            {selfJoinDetected && (
+              <div
+                style={{
+                  padding: '14px 16px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(234, 179, 8, 0.1)',
+                  border: '1px solid #eab308',
+                  color: 'var(--text)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, color: '#eab308' }}>
+                  <AlertCircle size={18} />
+                  <span>Host Session Detected on Same Machine</span>
+                </div>
+                <p style={{ fontSize: '0.84rem', margin: 0, lineHeight: 1.45, color: 'var(--text-muted)' }}>
+                  You are currently logged in as <strong>{selfJoinDetected.hostNickname}</strong> (the Chamber Host).
+                  To join Chamber <strong>{selfJoinDetected.roomCode}</strong> as a <em>second player</em> on this computer:
+                </p>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '2px' }}>
+                  <button
+                    type="button"
+                    onClick={handleJoinAsSecondPlayer}
+                    disabled={isJoiningRoom}
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      background: 'var(--accent)',
+                      color: 'var(--accent-contrast)',
+                      border: 'none',
+                      borderRadius: 'var(--radius-sm)',
+                      fontWeight: 800,
+                      fontSize: '0.88rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ⚡ Join as Player 2 (Local Tab)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleContinueAsHost}
+                    style={{
+                      padding: '10px 14px',
+                      background: 'var(--surface-2)',
+                      border: '1px solid var(--line)',
+                      color: 'var(--text)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontWeight: 600,
+                      fontSize: '0.84rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Enter as Host
+                  </button>
+                </div>
               </div>
             )}
 
