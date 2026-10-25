@@ -19,6 +19,13 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 import jsonschema
 
+# Ensure parent directory is in sys.path so imports work regardless of working directory
+_backend_dir = Path(__file__).resolve().parent
+_repo_root = _backend_dir.parent
+for _p in [str(_repo_root), str(_backend_dir)]:
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
 # Engine imports
 from backend.engine.state import create_game, add_amendment, select_rulebook
 from backend.engine.engine import execute_turn
