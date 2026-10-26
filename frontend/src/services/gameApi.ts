@@ -31,6 +31,14 @@ export interface BackendGameSettings {
   amend_every?: 1 | 2;
 }
 
+export interface BackendAmendmentPhase {
+  active: boolean;
+  player_id: string;
+  started_at: number;
+  deadline: number;
+  duration: number;
+}
+
 export interface BackendGameState {
   game_id: string;
   phase: 'drafting' | 'playing' | 'finished';
@@ -51,6 +59,7 @@ export interface BackendGameState {
   leaderboard: Record<string, unknown>[];
   winner: string | null;
   rulebook_info: Record<string, unknown> | null;
+  amendment_phase?: BackendAmendmentPhase | null;
 }
 
 async function request<T>(
@@ -115,11 +124,36 @@ export async function rollBackendTurn(
   );
 }
 
+export interface PredefinedSuggestion {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+}
+
+export async function fetchPlayerSuggestions(
+  gameId: string,
+  playerId: string,
+): Promise<{ suggestions: PredefinedSuggestion[] }> {
+  return request<{ suggestions: PredefinedSuggestion[] }>(
+    `/game/${encodeURIComponent(gameId)}/suggestions?player_id=${encodeURIComponent(playerId)}`,
+  );
+}
+
 export async function submitBackendAmendment(
   gameId: string,
   playerId: string,
-  text: string,
+  input: string | { text?: string; amendmentId?: string },
 ) {
+  const body =
+    typeof input === 'string'
+      ? { player_id: playerId, text: input }
+      : {
+          player_id: playerId,
+          ...(input.text ? { text: input.text } : {}),
+          ...(input.amendmentId ? { amendment_id: input.amendmentId } : {}),
+        };
+
   return request<{
     accepted: boolean;
     category?: 'not_a_game_rule' | 'invalid_rule' | 'accepted' | 'court_error' | null;
@@ -130,7 +164,7 @@ export async function submitBackendAmendment(
     `/game/${encodeURIComponent(gameId)}/amend`,
     {
       method: 'POST',
-      body: JSON.stringify({ player_id: playerId, text }),
+      body: JSON.stringify(body),
     },
   );
 }

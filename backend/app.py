@@ -7,6 +7,8 @@ Provides REST API for game creation, state retrieval, turn execution, and amendm
 import os
 import json
 import sys
+import time
+import asyncio
 import random
 import threading
 from pathlib import Path
@@ -26,10 +28,14 @@ for _p in [str(_repo_root), str(_backend_dir)]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+import copy
+
 # Engine imports
 from backend.engine.state import create_game, add_amendment, select_rulebook
 from backend.engine.engine import execute_turn
 from backend.engine.validate import can_amend, validate_rule as engine_validate_rule
+from backend.engine.amendment_library import get_amendment_by_id
+from backend.engine.suggestions import get_player_suggestions
 
 # Court imports
 from backend.court.compiler import compile_amendment
@@ -129,10 +135,24 @@ class ExecuteTurnResponse(BaseModel):
     roll: int
 
 
+class SuggestionItem(BaseModel):
+    """Client-facing predefined amendment suggestion."""
+    id: str
+    title: str
+    description: str
+    category: str
+
+
+class SuggestionsResponse(BaseModel):
+    """Response for GET /game/{id}/suggestions."""
+    suggestions: List[SuggestionItem]
+
+
 class AmendRequest(BaseModel):
     """Request body for POST /game/{id}/amend."""
     player_id: str
-    text: str = Field(..., description="Natural language amendment text")
+    text: Optional[str] = Field(default=None, description="Natural language amendment text")
+    amendment_id: Optional[str] = Field(default=None, description="Predefined amendment ID")
 
 
 class AmendResponse(BaseModel):
@@ -459,6 +479,51 @@ async def create_new_game(request: CreateGameRequest):
         )
 
 
+AMENDMENT_TIMEOUT_SECONDS: float = 60.0
+
+
+def _consume_live_amendment_opportunity(state: dict) -> None:
+    """Close the current live-mode amendment opportunity and clear amendment phase."""
+    if state["settings"]["mode"] == "live":
+        state["moves_since_amend"] = 0
+    state["amendment_phase"] = None
+
+
+def _advance_turn(state: dict) -> None:
+    """Advance current_player to the next player."""
+    if state["phase"] != "finished":
+        players = state["players"]
+        current_idx = state["current_player"]
+        state["current_player"] = (current_idx + 1) % len(players)
+
+
+def _check_and_resolve_expiry(state: dict) -> bool:
+    """If an amendment phase deadline has passed, resolve it and advance turn."""
+    phase_info = state.get("amendment_phase")
+    if not phase_info or not phase_info.get("active"):
+        return False
+
+    deadline = phase_info.get("deadline", 0)
+    now = time.time()
+    if now >= deadline:
+        _consume_live_amendment_opportunity(state)
+        _advance_turn(state)
+        return True
+    return False
+
+
+async def _schedule_amendment_expiry(game_id: str, deadline: float):
+    """Asynchronously wait for the deadline and resolve expiry if still active."""
+    delay = max(0.0, deadline - time.time())
+    await asyncio.sleep(delay)
+    if game_id in games:
+        state = games[game_id]
+        phase_info = state.get("amendment_phase")
+        if phase_info and phase_info.get("active") and phase_info.get("deadline") == deadline:
+            _consume_live_amendment_opportunity(state)
+            _advance_turn(state)
+
+
 @app.get("/game/{game_id}", response_model=GetStateResponse)
 async def get_game_state(game_id: str):
     """Get the current state of a game."""
@@ -469,6 +534,7 @@ async def get_game_state(game_id: str):
         )
 
     state = games[game_id]
+    _check_and_resolve_expiry(state)
     if state["settings"]["mode"] == "hybrid":
         state["rules_book"] = load_rules_book(game_id) or []
     return GetStateResponse(state=state)
@@ -482,9 +548,9 @@ async def execute_player_turn(game_id: str, request: ExecuteTurnRequest):
     Validates that the specified player_id matches the current player.
     Processes the dice roll, movement, and scoring.
     
-    If an amendment opportunity is available after the roll, the API
-    rewinds current_player back to the player who just rolled, so they
-    can submit/pass their amendment before the turn truly ends.
+    If an amendment opportunity is available after the roll, enters an
+    authoritative 60-second amendment phase and rewinds current_player
+    back to the legislator until the phase is resolved.
     """
     if game_id not in games:
         raise HTTPException(
@@ -493,6 +559,22 @@ async def execute_player_turn(game_id: str, request: ExecuteTurnRequest):
         )
 
     state = games[game_id]
+    _check_and_resolve_expiry(state)
+
+    # Check if game is finished
+    if state["phase"] == "finished":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Game is already finished"
+        )
+
+    # Check if an amendment phase is currently pending
+    phase_info = state.get("amendment_phase")
+    if phase_info and phase_info.get("active"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Amendment phase is currently active for player {phase_info['player_id']}. Cannot roll until the amendment phase is resolved."
+        )
 
     # Validate player_id matches current player
     current_player_idx = state["current_player"]
@@ -504,13 +586,6 @@ async def execute_player_turn(game_id: str, request: ExecuteTurnRequest):
             detail=f"Not {request.player_id}'s turn. Current player is {current_player['id']}"
         )
 
-    # Check if game is finished
-    if state["phase"] == "finished":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Game is already finished"
-        )
-
     # Remember who rolled BEFORE executing
     rolling_player_idx = current_player_idx
 
@@ -520,38 +595,69 @@ async def execute_player_turn(game_id: str, request: ExecuteTurnRequest):
 
     roll = state["last_roll"]
 
+    # Check if game finished from this roll
+    if state["phase"] == "finished":
+        state["amendment_phase"] = None
+        return ExecuteTurnResponse(state=state, roll=roll)
+
     # Check if an amendment opportunity is available
     amend_available, _ = can_amend(state)
     
-    # If amendment is available and game isn't finished, rewind current_player
-    # back to the player who just rolled so they can amend
-    if amend_available and state["phase"] != "finished":
+    # If amendment is available, enter authoritative 60-second amendment phase
+    if amend_available:
         state["current_player"] = rolling_player_idx
+        now = time.time()
+        deadline = now + AMENDMENT_TIMEOUT_SECONDS
+        state["amendment_phase"] = {
+            "active": True,
+            "player_id": state["players"][rolling_player_idx]["id"],
+            "started_at": now,
+            "deadline": deadline,
+            "duration": int(AMENDMENT_TIMEOUT_SECONDS),
+        }
+        asyncio.create_task(_schedule_amendment_expiry(game_id, deadline))
+    else:
+        state["amendment_phase"] = None
 
     return ExecuteTurnResponse(state=state, roll=roll)
 
 
-def _consume_live_amendment_opportunity(state: dict) -> None:
-    """Close the current live-mode amendment opportunity."""
-    if state["settings"]["mode"] == "live":
-        state["moves_since_amend"] = 0
+@app.get("/game/{game_id}/suggestions", response_model=SuggestionsResponse)
+async def get_suggestions_endpoint(game_id: str, player_id: str):
+    """Return deterministic, player-specific predefined amendment suggestions."""
+    if game_id not in games:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Game {game_id} not found",
+        )
 
+    state = games[game_id]
+    _check_and_resolve_expiry(state)
 
-def _advance_turn(state: dict) -> None:
-    """Advance current_player to the next player."""
-    if state["phase"] != "finished":
-        players = state["players"]
-        current_idx = state["current_player"]
-        state["current_player"] = (current_idx + 1) % len(players)
+    player_ids = [p["id"] for p in state["players"]]
+    if player_id not in player_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Player {player_id} not found in this game",
+        )
+
+    try:
+        suggestions = get_player_suggestions(state, player_id)
+        return SuggestionsResponse(suggestions=[SuggestionItem(**s) for s in suggestions])
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get suggestions: {e}",
+        )
 
 
 @app.post("/game/{game_id}/amend", response_model=AmendResponse)
 async def submit_amendment(game_id: str, request: AmendRequest):
     """
-    Submit a natural language amendment.
+    Submit an amendment (either a predefined amendment_id or custom text).
 
-    Checks amendment eligibility, compiles the text using the Court,
-    validates the rule, and adds it to the game state if accepted.
+    Checks amendment eligibility, validates/compiles the rule,
+    and adds it to the game state if accepted.
     After handling the amendment, advances to the next player.
     """
     if game_id not in games:
@@ -561,6 +667,16 @@ async def submit_amendment(game_id: str, request: AmendRequest):
         )
 
     state = games[game_id]
+    _check_and_resolve_expiry(state)
+
+    # Validate exactly one of text or amendment_id is supplied
+    has_text = bool(request.text and request.text.strip())
+    has_id = bool(request.amendment_id and request.amendment_id.strip())
+    if has_text == has_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Exactly one of 'text' or 'amendment_id' must be provided",
+        )
 
     # Validate player exists
     player_ids = [p["id"] for p in state["players"]]
@@ -579,7 +695,10 @@ async def submit_amendment(game_id: str, request: AmendRequest):
             state=state,
         )
 
-    # Check whether an amendment opportunity currently exists.
+    is_live = state["settings"]["mode"] == "live"
+    phase_info = state.get("amendment_phase")
+
+    # Check whether an amendment opportunity currently exists in engine
     allowed, reason = can_amend(state)
     if not allowed:
         return AmendResponse(
@@ -589,91 +708,129 @@ async def submit_amendment(game_id: str, request: AmendRequest):
             state=state
         )
 
-    # Only the player who completed the qualifying turn may amend.
-    if state["settings"]["mode"] == "live":
-        if request.player_id != state.get("last_actor_id"):
+    # In live mode: require active amendment phase and authorized player
+    if is_live:
+        if not phase_info or not phase_info.get("active"):
             return AmendResponse(
                 accepted=False,
                 rule=None,
-                error="Only the player who completed the qualifying turn may amend.",
+                error="Amend not available: No active amendment phase or deadline has expired.",
+                state=state,
+            )
+        if request.player_id != phase_info.get("player_id"):
+            return AmendResponse(
+                accepted=False,
+                rule=None,
+                error=f"Only the player who completed the qualifying turn ({phase_info.get('player_id')}) may amend during this opportunity.",
                 state=state,
             )
 
-    # Compile amendment using the Court
-    try:
-        court_response = compile_amendment(request.text, state, engine_validate_rule)
-    except Exception as e:
-        _consume_live_amendment_opportunity(state)
-        _advance_turn(state)
-        return AmendResponse(
-            accepted=False,
-            rule=None,
-            error=f"Court compilation failed: {e}",
-            state=state
-        )
-
-    # If Court rejected, return immediately
-    if not court_response["accepted"]:
-        _consume_live_amendment_opportunity(state)
-        _advance_turn(state)
-        return AmendResponse(
-            accepted=False,
-            category=court_response.get("category"),
-            rule=None,
-            error=court_response["error"],
-            state=state
-        )
-
-    # Add amendment to game state
-    rule = court_response["rule"]
-    success, error = add_amendment(state, rule)
-
-    if not success:
-        _consume_live_amendment_opportunity(state)
-        _advance_turn(state)
-        return AmendResponse(
-            accepted=False,
-            rule=None,
-            error=error,
-            state=state
-        )
-
-    added_rule = state["rules"][-1]
-
-    # For Hybrid Mode, persist to the Rules Book (with rollback if persistence fails)
-    if state["settings"]["mode"] == "hybrid":
-        proposer_name = next(
-            (p["name"] for p in state["players"] if p["id"] == request.player_id),
-            request.player_id,
-        )
-        saved, book_entry, save_err = add_rule_to_book(
-            game_id=game_id,
-            rule=added_rule,
-            original_text=request.text,
-            proposer_id=request.player_id,
-            proposer_name=proposer_name,
-            status="active",
-        )
-        if not saved:
-            # Rollback: remove added rule from state.rules
-            if state["rules"] and state["rules"][-1].get("id") == added_rule.get("id"):
-                state["rules"].pop()
+    def _resolve_opportunity():
+        if is_live:
             _consume_live_amendment_opportunity(state)
             _advance_turn(state)
+        else:
+            _advance_turn(state)
+
+    # Route 1: Predefined amendment (bypasses LLM compilation completely)
+    if has_id:
+        entry = get_amendment_by_id(request.amendment_id.strip())
+        if not entry:
+            _resolve_opportunity()
             return AmendResponse(
                 accepted=False,
+                category="invalid_rule",
                 rule=None,
-                error=f"Failed to persist rule to Rules Book: {save_err}",
+                error=f"Unknown amendment ID: {request.amendment_id}",
                 state=state,
             )
-        state["rules_book"] = load_rules_book(game_id)
 
-    # Close the opportunity after successful insertion.
-    _consume_live_amendment_opportunity(state)
-    
-    # Advance to next player after amendment is handled
-    _advance_turn(state)
-    
+        rule_payload = copy.deepcopy(entry.get("rule_payload", {}))
+        valid, val_err = engine_validate_rule(rule_payload)
+        if not valid:
+            _resolve_opportunity()
+            return AmendResponse(
+                accepted=False,
+                category="invalid_rule",
+                rule=None,
+                error=f"Invalid rule: {val_err}",
+                state=state,
+            )
+
+        success, error = add_amendment(state, rule_payload)
+        if not success:
+            _resolve_opportunity()
+            return AmendResponse(
+                accepted=False,
+                category="invalid_rule",
+                rule=None,
+                error=error,
+                state=state,
+            )
+
+    # Route 2: Custom natural language proposal (invokes AI Court)
+    else:
+        try:
+            court_response = compile_amendment(request.text.strip(), state, engine_validate_rule)
+        except Exception as e:
+            # Infrastructure failure: do NOT consume opportunity or advance turn
+            return AmendResponse(
+                accepted=False,
+                category="court_error",
+                rule=None,
+                error=f"Court compilation failed: {e}",
+                state=state
+            )
+
+        # Provider / connection error: do NOT consume opportunity or advance turn
+        if court_response.get("category") == "court_error":
+            return AmendResponse(
+                accepted=False,
+                category="court_error",
+                rule=None,
+                error=court_response.get("error", "Court AI provider is not available"),
+                state=state
+            )
+
+        # Check if deadline expired while AI was processing
+        if is_live:
+            curr_phase = state.get("amendment_phase")
+            if not curr_phase or not curr_phase.get("active") or time.time() >= curr_phase.get("deadline", 0):
+                _resolve_opportunity()
+                return AmendResponse(
+                    accepted=False,
+                    category="invalid_rule",
+                    rule=None,
+                    error="Amendment deadline expired before deliberation finished.",
+                    state=state
+                )
+
+        # If Court rejected (not a game rule / invalid rule), consume opportunity and advance turn
+        if not court_response["accepted"]:
+            _resolve_opportunity()
+            return AmendResponse(
+                accepted=False,
+                category=court_response.get("category", "invalid_rule"),
+                rule=None,
+                error=court_response["error"],
+                state=state
+            )
+
+        rule = court_response["rule"]
+        success, error = add_amendment(state, rule)
+        if not success:
+            _resolve_opportunity()
+            return AmendResponse(
+                accepted=False,
+                category="invalid_rule",
+                rule=None,
+                error=error,
+                state=state
+            )
+
+    added_rule = state["rules"][-1]
+    _resolve_opportunity()
+
     return AmendResponse(
         accepted=True,
         category="accepted",
@@ -693,6 +850,8 @@ async def pass_amendment(game_id: str, request: ExecuteTurnRequest):
         )
 
     state = games[game_id]
+    _check_and_resolve_expiry(state)
+
     player_ids = [p["id"] for p in state["players"]]
     if request.player_id not in player_ids:
         raise HTTPException(
@@ -703,12 +862,24 @@ async def pass_amendment(game_id: str, request: ExecuteTurnRequest):
     if state["settings"]["mode"] != "live":
         return {"accepted": False, "error": "Passing is only supported in live mode.", "state": state}
 
-    if request.player_id != state.get("last_actor_id"):
-        return {"accepted": False, "error": "Only the player who completed the qualifying turn may pass.", "state": state}
-
-    allowed, reason = can_amend(state)
-    if not allowed:
-        return {"accepted": False, "error": reason, "state": state}
+    phase_info = state.get("amendment_phase")
+    if phase_info and phase_info.get("active"):
+        if request.player_id != phase_info.get("player_id"):
+            return {
+                "accepted": False,
+                "error": f"Only the player who completed the qualifying turn ({phase_info.get('player_id')}) may pass during this opportunity.",
+                "state": state
+            }
+    else:
+        if request.player_id != state.get("last_actor_id"):
+            return {
+                "accepted": False,
+                "error": "Only the player who completed the qualifying turn may pass.",
+                "state": state
+            }
+        allowed, reason = can_amend(state)
+        if not allowed:
+            return {"accepted": False, "error": reason or "No active amendment opportunity to pass.", "state": state}
 
     _consume_live_amendment_opportunity(state)
     _advance_turn(state)

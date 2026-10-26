@@ -1,6 +1,12 @@
 """Tests for engine.py — turn execution, effects, predicates, conflict, modes, logging."""
 
-from engine.engine import execute_turn
+from engine.engine import (
+    execute_turn,
+    _get_active_rules,
+    get_rule_conflict_key,
+    normalize_condition,
+    normalize_predicate,
+)
 from engine.state import create_game, add_amendment
 from engine.validate import can_amend
 from conftest import make_rule, make_pred, make_game_with, FixedRNG
@@ -267,6 +273,166 @@ class TestMaxRules:
 
 class TestConflictResolution:
 
+    # 1. Prime tile +2 and always +1 coexist (Case A)
+    def test_different_conditions_coexist_prime_and_always(self):
+        rule_prime = make_rule("on_land", "add_score", 2, "self",
+                               predicates=[make_pred("tile_is_prime")])
+        rule_always = make_rule("on_land", "add_score", 1, "self",
+                                predicates=[])
+        s = make_game_with(rules=[rule_prime, rule_always])
+        matching = [(i, r) for i, r in enumerate(s["rules"]) if r["trigger"] == "on_land"]
+        active = _get_active_rules(matching)
+        assert len(active) == 2
+        active_ids = [r["id"] for _, r in active]
+        assert s["rules"][0]["id"] in active_ids
+        assert s["rules"][1]["id"] in active_ids
+
+    # 2. Landing on a prime tile applies both rules and awards +3
+    def test_landing_on_prime_applies_both_rules(self):
+        # Position 1 + roll 1 = position 2 (prime).
+        rule_prime = make_rule("on_land", "add_score", 2, "self",
+                               predicates=[make_pred("tile_is_prime")])
+        rule_always = make_rule("on_land", "add_score", 1, "self",
+                                predicates=[])
+        s = make_game_with(rules=[rule_prime, rule_always])
+        run(s, [1])
+        # P1: roll 1 + prime rule (+2) + always rule (+1) = 4 (rules awarded +3)
+        assert s["players"][0]["position"] == 2
+        assert s["players"][0]["score"] == 4
+        # Verify both rules produced log entries
+        rule_ids = {s["rules"][0]["id"], s["rules"][1]["id"]}
+        fired_ids = {entry["rule_id"] for entry in s["log"] if entry.get("rule_id") in rule_ids}
+        assert fired_ids == rule_ids
+
+    # 3. Landing on a non-prime tile applies only the always +1 rule
+    def test_landing_on_non_prime_applies_only_always(self):
+        # Position 1 + roll 3 = position 4 (not prime).
+        rule_prime = make_rule("on_land", "add_score", 2, "self",
+                               predicates=[make_pred("tile_is_prime")])
+        rule_always = make_rule("on_land", "add_score", 1, "self",
+                                predicates=[])
+        s = make_game_with(rules=[rule_prime, rule_always])
+        run(s, [3])
+        # P1: roll 3 + always rule (+1) = 4; prime rule did NOT fire
+        assert s["players"][0]["position"] == 4
+        assert s["players"][0]["score"] == 4
+        fired_ids = [entry["rule_id"] for entry in s["log"] if entry.get("rule_id")]
+        assert s["rules"][1]["id"] in fired_ids
+        assert s["rules"][0]["id"] not in fired_ids
+
+    # 4. Same condition, different amounts: replace (Case B)
+    def test_same_condition_different_amounts_replace(self):
+        rule_old = make_rule("on_land", "add_score", 2, "self",
+                             predicates=[make_pred("tile_is_prime")])
+        rule_new = make_rule("on_land", "add_score", 3, "self",
+                             predicates=[make_pred("tile_is_prime")])
+        s = make_game_with(rules=[rule_old, rule_new])
+        matching = [(i, r) for i, r in enumerate(s["rules"]) if r["trigger"] == "on_land"]
+        active = _get_active_rules(matching)
+        assert len(active) == 1
+        assert active[0][1]["id"] == s["rules"][1]["id"]  # only newer rule
+
+        run(s, [1])  # lands on prime tile 2
+        # roll 1 + newer rule (+3) = 4 (must not be 1 + 2 + 3 = 6)
+        assert s["players"][0]["score"] == 4
+        fired_ids = [entry["rule_id"] for entry in s["log"] if entry.get("rule_id")]
+        assert s["rules"][1]["id"] in fired_ids
+        assert s["rules"][0]["id"] not in fired_ids
+
+    # 5. Same condition, opposite amounts: replace (Case C)
+    def test_same_condition_opposite_amounts_replace(self):
+        rule_old = make_rule("on_land", "add_score", 2, "self",
+                             predicates=[make_pred("tile_is_prime")])
+        rule_new = make_rule("on_land", "add_score", -2, "self",
+                             predicates=[make_pred("tile_is_prime")])
+        s = make_game_with(scores=[5, 0], rules=[rule_old, rule_new])
+        matching = [(i, r) for i, r in enumerate(s["rules"]) if r["trigger"] == "on_land"]
+        active = _get_active_rules(matching)
+        assert len(active) == 1
+        assert active[0][1]["id"] == s["rules"][1]["id"]  # only newer rule
+
+        run(s, [1])  # lands on prime tile 2
+        # initial 5 + roll 1 + newer rule (-2) = 4 (if both were active, +2 and -2 cancel to 6)
+        assert s["players"][0]["score"] == 4
+        fired_ids = [entry["rule_id"] for entry in s["log"] if entry.get("rule_id")]
+        assert s["rules"][1]["id"] in fired_ids
+        assert s["rules"][0]["id"] not in fired_ids
+
+    # 6. tile_is_prime and roll_is_even coexist when effect signatures match
+    def test_different_predicates_coexist_same_effect_and_target(self):
+        rule_prime = make_rule("on_land", "add_score", 2, "self",
+                               predicates=[make_pred("tile_is_prime")])
+        rule_even = make_rule("on_land", "add_score", 2, "self",
+                              predicates=[make_pred("roll_is_even")])
+        s = make_game_with(rules=[rule_prime, rule_even])
+        matching = [(i, r) for i, r in enumerate(s["rules"]) if r["trigger"] == "on_land"]
+        active = _get_active_rules(matching)
+        assert len(active) == 2
+
+        # Roll 2: even roll (2%2==0) AND 1 + 2 = tile 3 (prime)
+        run(s, [2])
+        # P1: roll 2 + prime rule (+2) + even roll rule (+2) = 6
+        assert s["players"][0]["position"] == 3
+        assert s["players"][0]["score"] == 6
+
+    # 7. Equivalent normalized conditions conflict deterministically
+    def test_equivalent_normalized_conditions_conflict_deterministically(self):
+        # (a) Normalization equivalence checks
+        # Predicate arg order independence
+        p1 = {"name": "score_gt", "args": {"value": 5, "secondary": 10}}
+        p2 = {"name": "score_gt", "args": {"secondary": 10, "value": 5}}
+        assert normalize_predicate(p1) == normalize_predicate(p2)
+
+        # Predicate order independence under 'all'
+        c_all_1 = {"mode": "all", "predicates": [make_pred("tile_is_prime"), make_pred("is_leader")]}
+        c_all_2 = {"mode": "all", "predicates": [make_pred("is_leader"), make_pred("tile_is_prime")]}
+        assert normalize_condition(c_all_1) == normalize_condition(c_all_2)
+
+        # Single predicate equivalence between 'all' and 'any'
+        c_single_all = {"mode": "all", "predicates": [make_pred("tile_is_prime")]}
+        c_single_any = {"mode": "any", "predicates": [make_pred("tile_is_prime")]}
+        assert normalize_condition(c_single_all) == normalize_condition(c_single_any)
+
+        # Redundant duplicate predicates normalize identically
+        c_dup = {"mode": "all", "predicates": [make_pred("tile_is_prime"), make_pred("tile_is_prime")]}
+        assert normalize_condition(c_dup) == normalize_condition(c_single_all)
+
+        # Empty representations normalize identically to ("always", ())
+        assert normalize_condition(None) == ("always", ())
+        assert normalize_condition({}) == ("always", ())
+        assert normalize_condition({"predicates": []}) == ("always", ())
+
+        # (b) Deterministic conflict resolution in engine
+        r1 = make_rule("on_land", "add_score", 2, "self",
+                       predicates=[make_pred("tile_is_prime"), make_pred("is_leader")], mode="all")
+        # r2 has reversed predicate order and different amount
+        r2 = make_rule("on_land", "add_score", 3, "self",
+                       predicates=[make_pred("is_leader"), make_pred("tile_is_prime")], mode="all")
+        s = make_game_with(rules=[r1, r2])
+        matching = [(i, r) for i, r in enumerate(s["rules"]) if r["trigger"] == "on_land"]
+        active = _get_active_rules(matching)
+        assert len(active) == 1
+        assert active[0][1]["id"] == s["rules"][1]["id"]
+
+    # 8. Rules with different effect types coexist (Case D)
+    def test_different_effect_types_coexist(self):
+        rule_score = make_rule("on_land", "add_score", 2, "self",
+                               predicates=[make_pred("tile_is_prime")])
+        rule_move = make_rule("on_land", "move", 3, "self",
+                              predicates=[make_pred("tile_is_prime")])
+        s = make_game_with(rules=[rule_score, rule_move])
+        matching = [(i, r) for i, r in enumerate(s["rules"]) if r["trigger"] == "on_land"]
+        active = _get_active_rules(matching)
+        assert len(active) == 2
+
+        # Roll 1 -> lands on tile 2 (prime)
+        run(s, [1])
+        # P1: roll 1 + score rule (+2) = 3
+        # AND move rule moves player 3 spaces: 2 -> 5
+        assert s["players"][0]["score"] == 3
+        assert s["players"][0]["position"] == 5
+
+    # 9. Existing behavior preserved
     def test_different_targets_coexist(self):
         s = make_game_with(rules=[
             make_rule("on_land", "add_score", 1, "self"),

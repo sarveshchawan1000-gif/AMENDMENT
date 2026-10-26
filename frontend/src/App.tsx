@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   createBackendGame,
   rollBackendTurn,
@@ -28,7 +28,6 @@ import { RulesBook } from './components/RulesBook';
 import { ProposalComposer } from './components/ProposalComposer';
 import { AIRulingModal } from './components/AIRulingModal';
 import { RuleAutopsyModal } from './components/RuleAutopsyModal';
-import { EventHistoryFeed } from './components/EventHistoryFeed';
 import { GameOverModal } from './components/GameOverModal';
 import { EvaluationModal } from './components/EvaluationModal';
 import {
@@ -78,10 +77,14 @@ export const App: React.FC = () => {
   const [isRolling, setIsRolling] = useState<boolean>(false);
   const [backendGameId, setBackendGameId] = useState<string | null>(null);
   const [amendmentProposerId, setAmendmentProposerId] = useState<string | null>(null);
+  const [amendmentDeadline, setAmendmentDeadline] = useState<number | null>(null);
   const [showProposalComposer, setShowProposalComposer] = useState<boolean>(false);
   const [showRulingModal, setShowRulingModal] = useState<boolean>(false);
   const [showEvaluationModal, setShowEvaluationModal] = useState<boolean>(false);
   const [selectedPlayerHistoryId, setSelectedPlayerHistoryId] = useState<string | null>(null);
+  const resolvedDeadlineRef = useRef<number | null>(null);
+  const isHandlingTimeoutRef = useRef<boolean>(false);
+  const draftFinalizedRef = useRef<boolean>(false);
 
   // Hybrid Mode Rules Book state
   const [rulesBook, setRulesBook] = useState<RulesBookItem[]>([]);
@@ -114,6 +117,7 @@ export const App: React.FC = () => {
         try {
           const res = await fetchBackendGame(savedGameId);
           const backendState = res.state;
+          draftFinalizedRef.current = true;
           setBackendGameId(savedGameId);
           const boardSize = (backendState.settings.board_size * backendState.settings.board_size) as 36 | 64 | 100;
           setState((prev) => ({
@@ -153,6 +157,7 @@ export const App: React.FC = () => {
   const handleResetGame = () => {
     localStorage.removeItem('amendment_active_game_id');
     localStorage.removeItem('amendment_active_game_mode');
+    draftFinalizedRef.current = false;
     setBackendGameId(null);
     setAmendmentProposerId(null);
     setShowProposalComposer(false);
@@ -251,6 +256,7 @@ export const App: React.FC = () => {
     }
 
     const initialPhase = config.mode === 'draft' ? 'draft_stage' : 'waiting_for_roll';
+    draftFinalizedRef.current = config.mode !== 'draft';
 
     setState({
       config,
@@ -276,6 +282,7 @@ export const App: React.FC = () => {
     acceptedRules: CompiledRule[],
     rejectedRules: CompiledRule[],
   ) => {
+    draftFinalizedRef.current = true;
     setState((prev) => {
       const passedCounts: Record<string, number> = {};
       acceptedRules.forEach((rule) => {
@@ -299,6 +306,7 @@ export const App: React.FC = () => {
   // Turn Roll Handler
   const handleRollDice = async () => {
   if (
+    !draftFinalizedRef.current ||
     state.phase !== 'waiting_for_roll' ||
     isRolling ||
     !backendGameId
@@ -310,6 +318,7 @@ export const App: React.FC = () => {
   if (!activePlayer) return;
 
   setIsRolling(true);
+  resolvedDeadlineRef.current = null;
 
   try {
     // Preserve the dice animation.
@@ -536,6 +545,7 @@ export const App: React.FC = () => {
       backendState.moves_since_amend >= (backendState.settings.amend_every ?? 1) &&
       backendActivePlayerIndex === state.activePlayerIndex;
 
+    const isAmendmentActive = Boolean(backendState.amendment_phase?.active);
     const nextState: GameState = {
       ...state,
       players: updatedPlayers,
@@ -543,7 +553,9 @@ export const App: React.FC = () => {
       turnCount: backendState.turn,
       currentDiceRoll: response.roll,
       winner,
-      phase: backendState.phase === 'finished' ? 'game_over' : 'waiting_for_roll',
+      phase: backendState.phase === 'finished'
+        ? 'game_over'
+        : (isAmendmentActive ? 'eligible_for_amendment' : 'waiting_for_roll'),
     };
 
     console.log('[DEBUG] Roll response:', {
@@ -554,16 +566,18 @@ export const App: React.FC = () => {
       updatedP2Score: updatedPlayers[1].score,
       currentPlayer: backendActivePlayerIndex,
       moveSinceAmend: backendState.moves_since_amend,
+      amendmentPhase: backendState.amendment_phase,
     });
 
     setState(nextState);
 
-    // If amendment is available, show the composer
-    if (amendmentAvailable) {
-      const proposer = updatedPlayers[backendActivePlayerIndex];
+    // If amendment phase is active, configure deadline and show composer
+    if (isAmendmentActive && backendState.amendment_phase) {
+      const proposer = updatedPlayers.find((p) => p.id === backendState.amendment_phase?.player_id) || updatedPlayers[backendActivePlayerIndex];
 
       if (proposer) {
         setAmendmentProposerId(proposer.id);
+        setAmendmentDeadline(backendState.amendment_phase.deadline);
 
         if (proposer.isGemma) {
           setTimeout(() => {
@@ -580,6 +594,10 @@ export const App: React.FC = () => {
           setShowProposalComposer(true);
         }
       }
+    } else {
+      setAmendmentProposerId(null);
+      setAmendmentDeadline(null);
+      setShowProposalComposer(false);
     }
   } catch (error) {
     const message =
@@ -595,7 +613,12 @@ export const App: React.FC = () => {
 
   // Bot auto-play for Gemma's turn
   useEffect(() => {
-    if (state.phase === 'waiting_for_roll' && !isRolling && !state.winner) {
+    if (
+      draftFinalizedRef.current &&
+      state.phase === 'waiting_for_roll' &&
+      !isRolling &&
+      !state.winner
+    ) {
       const activePlayer = state.players[state.activePlayerIndex];
 
       if (activePlayer?.isGemma) {
@@ -608,7 +631,78 @@ export const App: React.FC = () => {
     }
   }, [state.phase, state.activePlayerIndex, isRolling, state.winner]);
 
-  // Periodic polling to keep leaderboard up‑to‑date every second
+  // Authoritative handler for amendment timer expiry
+  const handleAmendmentTimeout = useCallback(async () => {
+    if (isHandlingTimeoutRef.current) return;
+    isHandlingTimeoutRef.current = true;
+
+    // Immediately hide timer and composer modal
+    setShowProposalComposer(false);
+    setAmendmentDeadline(null);
+    setAmendmentProposerId(null);
+    if (amendmentDeadline) {
+      resolvedDeadlineRef.current = amendmentDeadline;
+    }
+
+    if (!backendGameId) {
+      isHandlingTimeoutRef.current = false;
+      return;
+    }
+
+    try {
+      // Refresh authoritative game state from backend
+      // Fetching game state runs _check_and_resolve_expiry on server
+      const response = await fetchBackendGame(backendGameId);
+      const backendState = response.state;
+      const isPhaseActive = Boolean(backendState.amendment_phase?.active);
+
+      setState((prev) => {
+        if (backendState.phase === 'finished') {
+          return {
+            ...prev,
+            phase: 'game_over',
+            winner: prev.players.find((p) => p.id === backendState.winner) ?? null,
+          };
+        }
+
+        if (prev.phase === 'setup') {
+          return prev;
+        }
+
+        if ((backendState.phase === 'drafting' || prev.phase === 'draft_stage') && !draftFinalizedRef.current) {
+          return {
+            ...prev,
+            phase: 'draft_stage',
+          };
+        }
+
+        return {
+          ...prev,
+          players: prev.players.map((p) => {
+            const bp = backendState.players.find((candidate) => candidate.id === p.id);
+            return bp ? { ...p, score: bp.score, position: bp.position } : p;
+          }),
+          activePlayerIndex: backendState.current_player,
+          turnCount: backendState.turn,
+          phase: isPhaseActive ? 'eligible_for_amendment' : 'waiting_for_roll',
+        };
+      });
+
+      if (isPhaseActive && backendState.amendment_phase && backendState.amendment_phase.deadline !== resolvedDeadlineRef.current) {
+        setAmendmentDeadline(backendState.amendment_phase.deadline);
+        setAmendmentProposerId(backendState.amendment_phase.player_id);
+      } else {
+        setAmendmentDeadline(null);
+        setAmendmentProposerId(null);
+      }
+    } catch (err) {
+      console.error('Failed to sync state upon amendment timeout:', err);
+    } finally {
+      isHandlingTimeoutRef.current = false;
+    }
+  }, [backendGameId, amendmentDeadline]);
+
+  // Periodic polling to keep leaderboard and turn lifecycle up‑to‑date every second
   useEffect(() => {
     if (!backendGameId) return;
     const interval = setInterval(() => {
@@ -616,15 +710,64 @@ export const App: React.FC = () => {
         try {
           const response = await fetchBackendGame(backendGameId);
           const backendState = response.state;
-          setState((prev) => ({
-            ...prev,
-            players: prev.players.map((p) => {
-              const bp = backendState.players.find((bp) => bp.id === p.id);
-              return bp ? { ...p, score: bp.score, position: bp.position } : p;
-            }),
-            activePlayerIndex: backendState.current_player,
-            turnCount: backendState.turn,
-          }));
+          const isPhaseActive = Boolean(backendState.amendment_phase?.active);
+          const phaseDeadline = backendState.amendment_phase?.deadline ?? null;
+
+          // Prevent stale countdown intervals or delayed API responses from making previous timer reappear
+          if (isPhaseActive && phaseDeadline && phaseDeadline === resolvedDeadlineRef.current) {
+            return;
+          }
+
+          setState((prev) => {
+            // Finished game always transitions to game_over
+            if (backendState.phase === 'finished') {
+              return {
+                ...prev,
+                phase: 'game_over',
+                winner: prev.players.find((p) => p.id === backendState.winner) ?? null,
+              };
+            }
+
+            // In setup screen, do not transition phase
+            if (prev.phase === 'setup') {
+              return prev;
+            }
+
+            // Draft Mode preservation:
+            // If backend is in drafting or frontend is in draft_stage, and the draft has not yet been explicitly finalized:
+            if ((backendState.phase === 'drafting' || prev.phase === 'draft_stage') && !draftFinalizedRef.current) {
+              return {
+                ...prev,
+                phase: 'draft_stage',
+              };
+            }
+
+            // Active gameplay phase synchronization:
+            return {
+              ...prev,
+              players: prev.players.map((p) => {
+                const bp = backendState.players.find((bp) => bp.id === p.id);
+                return bp ? { ...p, score: bp.score, position: bp.position } : p;
+              }),
+              activePlayerIndex: backendState.current_player,
+              turnCount: backendState.turn,
+              phase: isPhaseActive ? 'eligible_for_amendment' : 'waiting_for_roll',
+            };
+          });
+
+          if (
+            draftFinalizedRef.current &&
+            backendState.phase !== 'drafting' &&
+            isPhaseActive &&
+            backendState.amendment_phase &&
+            phaseDeadline !== resolvedDeadlineRef.current
+          ) {
+            setAmendmentDeadline(backendState.amendment_phase.deadline);
+            setAmendmentProposerId(backendState.amendment_phase.player_id);
+          } else {
+            setAmendmentDeadline(null);
+            setShowProposalComposer(false);
+          }
         } catch (e) {
           console.error('Failed to poll backend state:', e);
         }
@@ -635,10 +778,15 @@ export const App: React.FC = () => {
 
   // Proposal Submission Handler: backend is authoritative.
   const handleProposalSubmit = async (
-    text: string,
+    input: string | { amendmentId: string },
     proposerId?: string,
   ) => {
     setShowProposalComposer(false);
+    setAmendmentDeadline(null);
+    setAmendmentProposerId(null);
+    if (amendmentDeadline) {
+      resolvedDeadlineRef.current = amendmentDeadline;
+    }
 
     // Hybrid mode: rules are fixed and cannot be changed or added
     if (state.config.mode === 'hybrid') {
@@ -660,11 +808,19 @@ export const App: React.FC = () => {
     setShowRulingModal(true);
     setState((prev) => ({ ...prev, isInterpretingRule: true }));
 
+    const submissionPayload = typeof input === 'string'
+      ? { text: input }
+      : { amendmentId: input.amendmentId };
+
+    const originalProposalText = typeof input === 'string'
+      ? input
+      : `Predefined Amendment [${input.amendmentId}]`;
+
     try {
       const response = await submitBackendAmendment(
         backendGameId,
         actualProposerId,
-        text,
+        submissionPayload,
       );
 
       const backendRule = response.rule;
@@ -727,7 +883,9 @@ export const App: React.FC = () => {
         const ruleId = String(backendRule.id ?? `A-${Date.now()}`);
         const conditionValue = Number(predicate?.value);
         const effectValue = Number(effectObject.amount ?? 0);
-        const originalText = String(backendRule.source ?? text);
+        const originalText = String(
+          backendRule.source ?? (typeof input === 'string' ? input : (backendRule.id ?? input.amendmentId)),
+        );
 
         compiledRule = {
           id: ruleId,
@@ -759,10 +917,12 @@ export const App: React.FC = () => {
 
       const ruling: import("./types/game").AIRuling = {
         status: response.accepted ? "accepted" : "rejected",
-        normalized_rule: compiledRule?.normalized_rule ?? text,
+        normalized_rule: compiledRule?.normalized_rule ?? originalProposalText,
         ...(compiledRule ? { compiled_rule: compiledRule } : {}),
         reason: response.accepted
-          ? "Amendment accepted."
+          ? (typeof input === 'string'
+              ? "Amendment accepted."
+              : "Predefined amendment enacted directly from the Constitutional Library.")
           : response.category === "not_a_game_rule"
             ? "This is not a game rule. Please propose a rule that changes the gameplay."
             : response.category === "invalid_rule"
@@ -789,6 +949,7 @@ export const App: React.FC = () => {
         // Update active player and turn count from backend response
         activePlayerIndex: response.state.current_player,
         turnCount: response.state.turn,
+        phase: response.state.phase === 'finished' ? 'game_over' : 'waiting_for_roll',
       }));
     } catch (error) {
       const message = error instanceof Error
@@ -799,15 +960,33 @@ export const App: React.FC = () => {
         ...prev,
         latestRuling: {
           status: "rejected",
-          normalized_rule: text,
+          normalized_rule: originalProposalText,
           reason: `Could not submit amendment to the backend: ${message}`,
           timestamp: Date.now(),
         },
         isInterpretingRule: false,
       }));
 
+      if (backendGameId) {
+        void fetchBackendGame(backendGameId).then((res) => {
+          const isPhaseActive = Boolean(res.state.amendment_phase?.active);
+          setState((prev) => ({
+            ...prev,
+            activePlayerIndex: res.state.current_player,
+            turnCount: res.state.turn,
+            phase: res.state.phase === 'finished'
+              ? 'game_over'
+              : (isPhaseActive ? 'eligible_for_amendment' : 'waiting_for_roll'),
+          }));
+        });
+      }
+
       console.error("Backend amendment failed:", error);
     }
+  };
+
+  const handlePredefinedSubmit = (amendmentId: string) => {
+    void handleProposalSubmit({ amendmentId });
   };
 
   // The backend advances the turn after the amendment is handled.
@@ -815,6 +994,7 @@ export const App: React.FC = () => {
   const handleDismissRuling = () => {
     setShowRulingModal(false);
     setAmendmentProposerId(null);
+    setAmendmentDeadline(null);
     
     // Refresh the state to reflect the turn advancement
     if (backendGameId) {
@@ -822,11 +1002,15 @@ export const App: React.FC = () => {
         try {
           const response = await fetchBackendGame(backendGameId);
           const backendState = response.state;
+          const isPhaseActive = Boolean(backendState.amendment_phase?.active);
           
           setState((prev) => ({
             ...prev,
             activePlayerIndex: backendState.current_player,
             turnCount: backendState.turn,
+            phase: backendState.phase === 'finished'
+              ? 'game_over'
+              : (isPhaseActive ? 'eligible_for_amendment' : 'waiting_for_roll'),
           }));
         } catch (error) {
           console.error('Failed to refresh state after ruling:', error);
@@ -837,9 +1021,14 @@ export const App: React.FC = () => {
 
   // Passing must not advance the player a second time.
   const handlePassTurn = async () => {
-    const proposerId = amendmentProposerId;
+    const proposerId = amendmentProposerId || state.players[state.activePlayerIndex]?.id;
 
     setShowProposalComposer(false);
+    setAmendmentDeadline(null);
+    setAmendmentProposerId(null);
+    if (amendmentDeadline) {
+      resolvedDeadlineRef.current = amendmentDeadline;
+    }
 
     // Hybrid mode: no amendments exist to pass, do nothing
     if (state.config.mode === 'hybrid') {
@@ -866,6 +1055,7 @@ export const App: React.FC = () => {
           ...prev,
           activePlayerIndex: response.state.current_player,
           turnCount: response.state.turn,
+          phase: response.state.phase === 'finished' ? 'game_over' : 'waiting_for_roll',
         }));
       }
     } catch (error) {
@@ -932,7 +1122,7 @@ export const App: React.FC = () => {
               alignItems: 'start',
             }}
           >
-            {/* Left Column: Board + Action Bar + Proceedings Feed */}
+            {/* Left Column: Board + Action Bar */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <Board
                 boardSize={state.config.boardSize}
@@ -946,11 +1136,8 @@ export const App: React.FC = () => {
                 onOpenProposalComposer={() => setShowProposalComposer(true)}
                 onPassTurn={handlePassTurn}
                 isRolling={isRolling}
-              />
-
-              <EventHistoryFeed
-                events={state.events}
-                onSelectEvent={(evt) => setState((prev) => ({ ...prev, selectedAutopsyEvent: evt }))}
+                amendmentDeadline={amendmentDeadline}
+                onTimeout={handleAmendmentTimeout}
               />
             </div>
 
@@ -1045,12 +1232,16 @@ export const App: React.FC = () => {
       </main>
 
       {/* Proposal Composer Modal */}
-      {showProposalComposer && (state.players.find((player) => player.id === amendmentProposerId) || state.players[state.activePlayerIndex]) && (
+      {showProposalComposer && amendmentDeadline !== null && (state.players.find((player) => player.id === amendmentProposerId) || state.players[state.activePlayerIndex]) && (
         <ProposalComposer
           proposer={state.players.find((player) => player.id === amendmentProposerId) || state.players[state.activePlayerIndex]}
           currentTurn={state.turnCount}
-          onSubmitProposal={handleProposalSubmit}
-          onCancel={() => setShowProposalComposer(false)}
+          gameId={backendGameId || undefined}
+          deadline={amendmentDeadline}
+          onSubmitProposal={(text) => handleProposalSubmit(text)}
+          onSubmitPredefined={handlePredefinedSubmit}
+          onCancel={handlePassTurn}
+          onTimeout={handleAmendmentTimeout}
           isInterpreting={state.isInterpretingRule}
         />
       )}

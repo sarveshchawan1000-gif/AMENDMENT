@@ -1,0 +1,3031 @@
+[
+  {
+    "id": "AMEND_001",
+    "title": "Prime Sanctuary",
+    "description": "Gain +2 points whenever you land on a prime tile.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points whenever you land on a prime tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "min_board_size": 6,
+      "tags": [
+        "prime",
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_002",
+    "title": "Even Momentum",
+    "description": "Advance +1 extra tile whenever you roll an even number.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Advance +1 extra tile whenever you roll an even number."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "roll",
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_003",
+    "title": "Underdog Relief",
+    "description": "Gain +2 points at the start of your turn if you are in last place.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points at the start of your turn if you are in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up",
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_004",
+    "title": "Robin Hood Accord",
+    "description": "When you roll an even number, transfer 1 point from the leader to last place.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "steal_score",
+        "amount": 1,
+        "target": "last"
+      },
+      "source": "When you roll an even number, transfer 1 point from the leader to last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption",
+        "steal"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_005",
+    "title": "Leader Surcharge",
+    "description": "When you land on any tile, steal 1 point from the current leader.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "steal_score",
+        "amount": 1,
+        "target": "leader"
+      },
+      "source": "When you land on any tile, steal 1 point from the current leader."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption",
+        "steal"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_006",
+    "title": "Second Roll Opportunity",
+    "description": "If you roll an even number, reroll your dice once.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "reroll",
+        "amount": 0,
+        "target": "self"
+      },
+      "source": "If you roll an even number, reroll your dice once."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "reroll",
+        "dice"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_007",
+    "title": "Sudden Death Accord",
+    "description": "Set the game victory threshold to 25 points.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "set_win_target",
+        "amount": 25,
+        "target": "self"
+      },
+      "source": "Set the game victory threshold to 25 points."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "min_win_target": 21,
+      "max_win_target": 64,
+      "tags": [
+        "endgame",
+        "win_target"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_008",
+    "title": "High Scorer Bonus",
+    "description": "Gain +1 point at turn start if your score is strictly greater than 10.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "score_gt",
+            "args": {
+              "value": 10
+            }
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Gain +1 point at turn start if your score is strictly greater than 10."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring",
+        "high_score"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_009",
+    "title": "Double Even Dividend",
+    "description": "Gain +1 point when you roll an even number.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Gain +1 point when you roll an even number."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_010",
+    "title": "Prime Roll Fortune",
+    "description": "Gain +1 point on roll if currently on a prime tile.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Gain +1 point on roll if currently on a prime tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_011",
+    "title": "Landing Toll",
+    "description": "Gain +1 point upon landing on any tile.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Gain +1 point upon landing on any tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_012",
+    "title": "Leader's Privilege",
+    "description": "Gain +1 point at the start of your turn if you are the leader.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_leader"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Gain +1 point at the start of your turn if you are the leader."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_013",
+    "title": "Grand Landing Tribute",
+    "description": "Gain +3 points whenever you land on a prime tile.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 3,
+        "target": "self"
+      },
+      "source": "Gain +3 points whenever you land on a prime tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_014",
+    "title": "Midgame Stride",
+    "description": "Gain +2 points at turn start if your score is greater than 15.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "score_gt",
+            "args": {
+              "value": 15
+            }
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points at turn start if your score is greater than 15."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_015",
+    "title": "Steady Advance",
+    "description": "Gain +2 points when landing after rolling an even number.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points when landing after rolling an even number."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_016",
+    "title": "Sovereign Tithe",
+    "description": "Gain +2 points upon landing if you are the leader.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_leader"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points upon landing if you are the leader."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_017",
+    "title": "High Roller Feast",
+    "description": "Gain +2 points on roll if your score is greater than 20.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "score_gt",
+            "args": {
+              "value": 20
+            }
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points on roll if your score is greater than 20."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_018",
+    "title": "Prime Meridian Blessing",
+    "description": "Gain +2 points at turn start if standing on a prime tile.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points at turn start if standing on a prime tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_019",
+    "title": "Universal Dividend",
+    "description": "Grant +1 point to all other players upon landing.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "all_others"
+      },
+      "source": "Grant +1 point to all other players upon landing."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_020",
+    "title": "Even Roll Bounty",
+    "description": "Gain +2 points whenever you roll an even number.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points whenever you roll an even number."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_021",
+    "title": "Frontrunner Tax Credit",
+    "description": "Gain +1 point when rolling if you are the leader.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_leader"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Gain +1 point when rolling if you are the leader."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_022",
+    "title": "Veteran Stipend",
+    "description": "Gain +3 points at turn start if your score is greater than 25.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "score_gt",
+            "args": {
+              "value": 25
+            }
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 3,
+        "target": "self"
+      },
+      "source": "Gain +3 points at turn start if your score is greater than 25."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_023",
+    "title": "Prime Consecration",
+    "description": "Gain +3 points at turn start if you are the leader on a prime tile.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          },
+          {
+            "name": "is_leader"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 3,
+        "target": "self"
+      },
+      "source": "Gain +3 points at turn start if you are the leader on a prime tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_024",
+    "title": "Synchronized Landing",
+    "description": "Gain +3 points when landing on a prime tile after an even roll.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          },
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 3,
+        "target": "self"
+      },
+      "source": "Gain +3 points when landing on a prime tile after an even roll."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_025",
+    "title": "Threshold Milestone",
+    "description": "Gain +2 points upon landing if your score is greater than 12.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "score_gt",
+            "args": {
+              "value": 12
+            }
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points upon landing if your score is greater than 12."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_026",
+    "title": "Apex Sovereign Harvest",
+    "description": "Gain +3 points at turn start if leader with score greater than 18.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_leader"
+          },
+          {
+            "name": "score_gt",
+            "args": {
+              "value": 18
+            }
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 3,
+        "target": "self"
+      },
+      "source": "Gain +3 points at turn start if leader with score greater than 18."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_027",
+    "title": "Even Stride Boon",
+    "description": "Gain +1 point at turn start if your last roll was even.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Gain +1 point at turn start if your last roll was even."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_028",
+    "title": "Modest Accumulation",
+    "description": "Gain +1 point at the start of your turn.",
+    "category": "scoring",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Gain +1 point at the start of your turn."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "scoring"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_029",
+    "title": "Prime Leap",
+    "description": "Advance +2 extra tiles whenever you land on a prime tile.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Advance +2 extra tiles whenever you land on a prime tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_030",
+    "title": "Rapid Stride",
+    "description": "Advance +1 extra tile whenever you roll.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "move",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Advance +1 extra tile whenever you roll."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_031",
+    "title": "Leader's Hurry",
+    "description": "Advance +1 tile at turn start if you are the leader.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_leader"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Advance +1 tile at turn start if you are the leader."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_032",
+    "title": "Prime Vault",
+    "description": "Advance +3 tiles at turn start if standing on a prime tile.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 3,
+        "target": "self"
+      },
+      "source": "Advance +3 tiles at turn start if standing on a prime tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_033",
+    "title": "Relentless Gallop",
+    "description": "Advance +2 extra tiles whenever you roll an even number.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Advance +2 extra tiles whenever you roll an even number."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_034",
+    "title": "Frontrunner's Stumble",
+    "description": "Move backward 1 tile upon landing if you are the leader.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_leader"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": -1,
+        "target": "self"
+      },
+      "source": "Move backward 1 tile upon landing if you are the leader."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_035",
+    "title": "Trailing Boost",
+    "description": "Advance +2 extra tiles on roll if you are in last place.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Advance +2 extra tiles on roll if you are in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_036",
+    "title": "Strategic Retreat",
+    "description": "Move backward 1 tile whenever you land on a prime tile.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": -1,
+        "target": "self"
+      },
+      "source": "Move backward 1 tile whenever you land on a prime tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_037",
+    "title": "Second Wind Reroll",
+    "description": "Reroll your dice once if you are in last place.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "reroll",
+        "amount": 0,
+        "target": "self"
+      },
+      "source": "Reroll your dice once if you are in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_038",
+    "title": "Gambler's Reroll",
+    "description": "Reroll your dice once if you are the leader.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_leader"
+          }
+        ]
+      },
+      "effect": {
+        "type": "reroll",
+        "amount": 0,
+        "target": "self"
+      },
+      "source": "Reroll your dice once if you are the leader."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_039",
+    "title": "High Stakes Reroll",
+    "description": "Reroll your dice once if your score is greater than 15.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "score_gt",
+            "args": {
+              "value": 15
+            }
+          }
+        ]
+      },
+      "effect": {
+        "type": "reroll",
+        "amount": 0,
+        "target": "self"
+      },
+      "source": "Reroll your dice once if your score is greater than 15."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_040",
+    "title": "Universal Quake",
+    "description": "Move all other players forward 1 tile when you land on a prime tile.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 1,
+        "target": "all_others"
+      },
+      "source": "Move all other players forward 1 tile when you land on a prime tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_041",
+    "title": "Drag the Leader",
+    "description": "Move the leader backward 1 tile when you roll an even number.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": -1,
+        "target": "leader"
+      },
+      "source": "Move the leader backward 1 tile when you roll an even number."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_042",
+    "title": "Escort the Trailing",
+    "description": "Advance the player in last place forward 1 tile on an even roll.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 1,
+        "target": "last"
+      },
+      "source": "Advance the player in last place forward 1 tile on an even roll."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_043",
+    "title": "Gravitational Pull",
+    "description": "Move backward 2 tiles upon landing if you are the leader.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_leader"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": -2,
+        "target": "self"
+      },
+      "source": "Move backward 2 tiles upon landing if you are the leader."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_044",
+    "title": "Prime Catapult",
+    "description": "Advance +3 extra tiles on roll if standing on a prime tile.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 3,
+        "target": "self"
+      },
+      "source": "Advance +3 extra tiles on roll if standing on a prime tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_045",
+    "title": "Forward Impasse",
+    "description": "Advance +1 tile at turn start if your score is greater than 10.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "score_gt",
+            "args": {
+              "value": 10
+            }
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Advance +1 tile at turn start if your score is greater than 10."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_046",
+    "title": "Whirlwind Step",
+    "description": "Advance +2 extra tiles upon landing after an even roll.",
+    "category": "movement",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Advance +2 extra tiles upon landing after an even roll."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "movement"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_047",
+    "title": "Prime Extortion",
+    "description": "When landing on a prime tile, steal 1 point from the leader.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "steal_score",
+        "amount": 1,
+        "target": "leader"
+      },
+      "source": "When landing on a prime tile, steal 1 point from the leader."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_048",
+    "title": "Crown Taxation",
+    "description": "At turn start, steal 2 points from the leader if you are in last place.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "steal_score",
+        "amount": 2,
+        "target": "leader"
+      },
+      "source": "At turn start, steal 2 points from the leader if you are in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_049",
+    "title": "Even Duel",
+    "description": "When rolling an even number, steal 2 points from the leader.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "steal_score",
+        "amount": 2,
+        "target": "leader"
+      },
+      "source": "When rolling an even number, steal 2 points from the leader."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_050",
+    "title": "Freeze the Crown",
+    "description": "Force the leader to skip their next turn if you are in last place upon landing.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "skip_turn",
+        "amount": 0,
+        "target": "leader"
+      },
+      "source": "Force the leader to skip their next turn if you are in last place upon landing."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_051",
+    "title": "Prime Embargo",
+    "description": "Force the leader to skip their next turn when you land on a prime tile.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "skip_turn",
+        "amount": 0,
+        "target": "leader"
+      },
+      "source": "Force the leader to skip their next turn when you land on a prime tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_052",
+    "title": "Traitor's Tax",
+    "description": "Steal 1 point from the leader at turn start if your score is greater than 15.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "score_gt",
+            "args": {
+              "value": 15
+            }
+          }
+        ]
+      },
+      "effect": {
+        "type": "steal_score",
+        "amount": 1,
+        "target": "leader"
+      },
+      "source": "Steal 1 point from the leader at turn start if your score is greater than 15."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_053",
+    "title": "Paralyzing Gaze",
+    "description": "Force the leader to skip their next turn whenever you roll an even number.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "skip_turn",
+        "amount": 0,
+        "target": "leader"
+      },
+      "source": "Force the leader to skip their next turn whenever you roll an even number."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_054",
+    "title": "Field Wide Toll",
+    "description": "Reduce the score of all other players by 1 when landing on a prime tile.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": -1,
+        "target": "all_others"
+      },
+      "source": "Reduce the score of all other players by 1 when landing on a prime tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_055",
+    "title": "Leader Penalty",
+    "description": "Deduct 1 point from the leader at the start of your turn.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": -1,
+        "target": "leader"
+      },
+      "source": "Deduct 1 point from the leader at the start of your turn."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_056",
+    "title": "Crown Drain",
+    "description": "Steal 1 point from the leader on landing if your score is greater than 10.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "score_gt",
+            "args": {
+              "value": 10
+            }
+          }
+        ]
+      },
+      "effect": {
+        "type": "steal_score",
+        "amount": 1,
+        "target": "leader"
+      },
+      "source": "Steal 1 point from the leader on landing if your score is greater than 10."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_057",
+    "title": "Universal Freeze",
+    "description": "Force all other players to skip next turn if you roll even while in last place.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          },
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "skip_turn",
+        "amount": 0,
+        "target": "all_others"
+      },
+      "source": "Force all other players to skip next turn if you roll even while in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_058",
+    "title": "Opponent Tax",
+    "description": "Deduct 1 point from all other players at turn start if you are the leader.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_leader"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": -1,
+        "target": "all_others"
+      },
+      "source": "Deduct 1 point from all other players at turn start if you are the leader."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_059",
+    "title": "Stalling Field",
+    "description": "Force the leader to skip their next turn when landing on an even roll.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "skip_turn",
+        "amount": 0,
+        "target": "leader"
+      },
+      "source": "Force the leader to skip their next turn when landing on an even roll."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_060",
+    "title": "Prowler's Siphon",
+    "description": "Steal 1 point from other players at turn start if in last place.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "steal_score",
+        "amount": 1,
+        "target": "all_others"
+      },
+      "source": "Steal 1 point from other players at turn start if in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_061",
+    "title": "Sovereign Demotion",
+    "description": "Steal 2 points from the leader when landing on prime while in last place.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          },
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "steal_score",
+        "amount": 2,
+        "target": "leader"
+      },
+      "source": "Steal 2 points from the leader when landing on prime while in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_062",
+    "title": "High Roller Tariff",
+    "description": "Steal 1 point from the leader on roll if your score is greater than 20.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "score_gt",
+            "args": {
+              "value": 20
+            }
+          }
+        ]
+      },
+      "effect": {
+        "type": "steal_score",
+        "amount": 1,
+        "target": "leader"
+      },
+      "source": "Steal 1 point from the leader on roll if your score is greater than 20."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_063",
+    "title": "Chaos Tithe",
+    "description": "Deduct 1 point from all other players whenever you roll an even number.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": -1,
+        "target": "all_others"
+      },
+      "source": "Deduct 1 point from all other players whenever you roll an even number."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_064",
+    "title": "Vanguard Restraint",
+    "description": "Deduct 1 point from the leader at turn start if your score is greater than 12.",
+    "category": "disruption",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "score_gt",
+            "args": {
+              "value": 12
+            }
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": -1,
+        "target": "leader"
+      },
+      "source": "Deduct 1 point from the leader at turn start if your score is greater than 12."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "disruption"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_065",
+    "title": "Tail-End Surge",
+    "description": "Gain +2 points upon landing if you are in last place.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points upon landing if you are in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_066",
+    "title": "Trailing Gallop",
+    "description": "Advance +2 tiles at the start of your turn if you are in last place.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Advance +2 tiles at the start of your turn if you are in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_067",
+    "title": "Underdog Momentum",
+    "description": "Advance +1 extra tile on roll if you are in last place.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Advance +1 extra tile on roll if you are in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_068",
+    "title": "Deficit Compensation",
+    "description": "Gain +3 points at turn start if you are in last place.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 3,
+        "target": "self"
+      },
+      "source": "Gain +3 points at turn start if you are in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_069",
+    "title": "Trailing Prime Haven",
+    "description": "Gain +3 points when landing on a prime tile if in last place.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          },
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 3,
+        "target": "self"
+      },
+      "source": "Gain +3 points when landing on a prime tile if in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_070",
+    "title": "Trailing Prime Dash",
+    "description": "Advance +3 extra tiles when landing on a prime tile if in last place.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          },
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 3,
+        "target": "self"
+      },
+      "source": "Advance +3 extra tiles when landing on a prime tile if in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_071",
+    "title": "Underdog Even Boon",
+    "description": "Gain +2 points when rolling an even number if in last place.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          },
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points when rolling an even number if in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_072",
+    "title": "Consolation Prize",
+    "description": "Gain +2 points at turn start if in last place with score greater than 5.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          },
+          {
+            "name": "score_gt",
+            "args": {
+              "value": 5
+            }
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points at turn start if in last place with score greater than 5."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_073",
+    "title": "Trailing Siphon",
+    "description": "Steal 1 point from the leader upon landing if in last place.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "steal_score",
+        "amount": 1,
+        "target": "leader"
+      },
+      "source": "Steal 1 point from the leader upon landing if in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_074",
+    "title": "Last Stand Advance",
+    "description": "Advance +1 extra tile upon landing if in last place.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Advance +1 extra tile upon landing if in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_075",
+    "title": "Underdog Sustenance",
+    "description": "Gain +1 point whenever you roll if in last place.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Gain +1 point whenever you roll if in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_076",
+    "title": "Mercy Stride",
+    "description": "Gain +2 points at turn start if in last place on a prime tile.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          },
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points at turn start if in last place on a prime tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_077",
+    "title": "Rear Guard Tribute",
+    "description": "Grant +1 point to the player in last place at turn start.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "last"
+      },
+      "source": "Grant +1 point to the player in last place at turn start."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_078",
+    "title": "Trailing Vanguard Boost",
+    "description": "Grant +1 point to the player in last place upon landing.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "last"
+      },
+      "source": "Grant +1 point to the player in last place upon landing."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_079",
+    "title": "Low Seed Acceleration",
+    "description": "Advance +2 extra tiles on roll if in last place with an even roll.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          },
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Advance +2 extra tiles on roll if in last place with an even roll."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_080",
+    "title": "Desperation Gambit",
+    "description": "Gain +4 points at turn start if you are in last place.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 4,
+        "target": "self"
+      },
+      "source": "Gain +4 points at turn start if you are in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_081",
+    "title": "Trailing Sanctuary",
+    "description": "Gain +3 points upon landing if you are in last place.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 3,
+        "target": "self"
+      },
+      "source": "Gain +3 points upon landing if you are in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_082",
+    "title": "Catch-Up Leap",
+    "description": "Advance +2 tiles upon landing on an even roll if in last place.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          },
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Advance +2 tiles upon landing on an even roll if in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_083",
+    "title": "Pity Points",
+    "description": "Gain +1 point at the start of your turn if you are in last place.",
+    "category": "catch_up",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Gain +1 point at the start of your turn if you are in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "catch_up"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_084",
+    "title": "Marathon Protocol",
+    "description": "Set the game victory threshold to 40 points.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "set_win_target",
+        "amount": 40,
+        "target": "self"
+      },
+      "source": "Set the game victory threshold to 40 points."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_085",
+    "title": "Grand Finale Compact",
+    "description": "Set the game victory threshold to 50 points.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "set_win_target",
+        "amount": 50,
+        "target": "self"
+      },
+      "source": "Set the game victory threshold to 50 points."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_086",
+    "title": "Sprint Target Pact",
+    "description": "Set the game victory threshold to 21 points.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "set_win_target",
+        "amount": 21,
+        "target": "self"
+      },
+      "source": "Set the game victory threshold to 21 points."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_087",
+    "title": "Tactical Plateau",
+    "description": "Set the game victory threshold to 30 points.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "set_win_target",
+        "amount": 30,
+        "target": "self"
+      },
+      "source": "Set the game victory threshold to 30 points."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_088",
+    "title": "Victory Extension",
+    "description": "Set the game victory threshold to 35 points.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "set_win_target",
+        "amount": 35,
+        "target": "self"
+      },
+      "source": "Set the game victory threshold to 35 points."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_089",
+    "title": "Final Sprint Accord",
+    "description": "Set the game victory threshold to 28 points.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "set_win_target",
+        "amount": 28,
+        "target": "self"
+      },
+      "source": "Set the game victory threshold to 28 points."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_090",
+    "title": "Endurance Treaty",
+    "description": "Set the game victory threshold to 45 points.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "set_win_target",
+        "amount": 45,
+        "target": "self"
+      },
+      "source": "Set the game victory threshold to 45 points."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_091",
+    "title": "Crown Checkpoint",
+    "description": "Gain +1 point on win check if you are the leader.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_leader"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Gain +1 point on win check if you are the leader."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_092",
+    "title": "Final Stretch Tax",
+    "description": "Deduct 1 point from your score on win check if you are the leader.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_leader"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": -1,
+        "target": "self"
+      },
+      "source": "Deduct 1 point from your score on win check if you are the leader."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_093",
+    "title": "Last Place Reprieve",
+    "description": "Gain +2 points on win check if you are in last place.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points on win check if you are in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_094",
+    "title": "Prime Victory Lap",
+    "description": "Gain +2 points on win check if standing on a prime tile.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points on win check if standing on a prime tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_095",
+    "title": "Even Finish Dividend",
+    "description": "Gain +1 point on win check if your last roll was even.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "roll_is_even"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Gain +1 point on win check if your last roll was even."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_096",
+    "title": "Leader Stumble at the Line",
+    "description": "Move backward 1 tile on win check if you are the leader.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_leader"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": -1,
+        "target": "self"
+      },
+      "source": "Move backward 1 tile on win check if you are the leader."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_097",
+    "title": "Underdog Final Surge",
+    "description": "Advance +2 tiles on win check if you are in last place.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_last"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Advance +2 tiles on win check if you are in last place."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_098",
+    "title": "Victory Threshold Clamp",
+    "description": "Set the game victory threshold to 32 points.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "set_win_target",
+        "amount": 32,
+        "target": "self"
+      },
+      "source": "Set the game victory threshold to 32 points."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_099",
+    "title": "Prime Finish Leap",
+    "description": "Advance +1 tile on win check if standing on a prime tile.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "tile_is_prime"
+          }
+        ]
+      },
+      "effect": {
+        "type": "move",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Advance +1 tile on win check if standing on a prime tile."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_100",
+    "title": "Gatekeeper's Toll",
+    "description": "Deduct 1 point on win check if your score is greater than 20.",
+    "category": "endgame",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "score_gt",
+            "args": {
+              "value": 20
+            }
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": -1,
+        "target": "self"
+      },
+      "source": "Deduct 1 point on win check if your score is greater than 20."
+    },
+    "validation_metadata": {
+      "is_valid": true,
+      "tags": [
+        "endgame"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_901",
+    "title": "Excessive Bounty (Test Invalid)",
+    "description": "Gain +50 points on landing (violates engine cap of \u00b15).",
+    "category": "invalid_demo",
+    "rule_payload": {
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 50,
+        "target": "self"
+      },
+      "source": "Gain +50 points on landing."
+    },
+    "validation_metadata": {
+      "is_valid": false,
+      "expected_error": "Effect amount 50 exceeds \u00b15 cap",
+      "tags": [
+        "test_invalid"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_902",
+    "title": "Illegal Trigger (Test Invalid)",
+    "description": "Trigger on unsupported phase.",
+    "category": "invalid_demo",
+    "rule_payload": {
+      "trigger": "on_meteor_strike",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Trigger on unsupported phase."
+    },
+    "validation_metadata": {
+      "is_valid": false,
+      "expected_error": "Invalid trigger: 'on_meteor_strike'",
+      "tags": [
+        "test_invalid"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_903",
+    "title": "Out of Bounds Win Target (Test Invalid)",
+    "description": "Set win target to 15 (violates engine range 21..64).",
+    "category": "invalid_demo",
+    "rule_payload": {
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "set_win_target",
+        "amount": 15,
+        "target": "self"
+      },
+      "source": "Set win target to 15."
+    },
+    "validation_metadata": {
+      "is_valid": false,
+      "expected_error": "set_win_target 15 outside 21..64",
+      "tags": [
+        "test_invalid"
+      ]
+    }
+  },
+  {
+    "id": "AMEND_904",
+    "title": "Unknown Predicate (Test Invalid)",
+    "description": "Check unsupported predicate condition.",
+    "category": "invalid_demo",
+    "rule_payload": {
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          {
+            "name": "is_wizard"
+          }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Check unsupported predicate condition."
+    },
+    "validation_metadata": {
+      "is_valid": false,
+      "expected_error": "Invalid predicate: 'is_wizard'",
+      "tags": [
+        "test_invalid"
+      ]
+    }
+  }
+]

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { GameState } from '../types/game';
-import { Dices, ArrowRight, Sparkles } from 'lucide-react';
+import { Dices, ArrowRight, Sparkles, Timer } from 'lucide-react';
 
 interface DiceAndControlsProps {
   state: GameState;
@@ -8,6 +8,8 @@ interface DiceAndControlsProps {
   onOpenProposalComposer: () => void;
   onPassTurn: () => void;
   isRolling: boolean;
+  amendmentDeadline?: number | null;
+  onTimeout?: () => void;
 }
 
 export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
@@ -16,10 +18,45 @@ export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
   onOpenProposalComposer,
   onPassTurn,
   isRolling,
+  amendmentDeadline,
+  onTimeout,
 }) => {
   const activePlayer = state.players[state.activePlayerIndex];
   const isEligibleToPropose = state.phase === 'eligible_for_amendment' && state.config.mode === 'live';
   const isWaitingForRoll = state.phase === 'waiting_for_roll';
+
+  const calculateRemaining = () => {
+    if (!amendmentDeadline) return 0;
+    const targetMs = amendmentDeadline < 1e11 ? amendmentDeadline * 1000 : amendmentDeadline;
+    return Math.max(0, Math.ceil((targetMs - Date.now()) / 1000));
+  };
+
+  const [timeLeft, setTimeLeft] = useState<number>(calculateRemaining);
+
+  useEffect(() => {
+    if (!amendmentDeadline || !isEligibleToPropose) {
+      setTimeLeft(0);
+      return;
+    }
+
+    const initialRemaining = calculateRemaining();
+    setTimeLeft(initialRemaining);
+    if (initialRemaining <= 0) {
+      onTimeout?.();
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const remaining = calculateRemaining();
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+        onTimeout?.();
+      }
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [amendmentDeadline, isEligibleToPropose, onTimeout]);
 
   if (!activePlayer) return null;
 
@@ -150,6 +187,43 @@ export const DiceAndControls: React.FC<DiceAndControlsProps> = ({
         {/* Amendment Eligible Action Buttons */}
         {isEligibleToPropose && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Authoritative countdown timer: visible ONLY while opportunity active */}
+            {Boolean(amendmentDeadline) && timeLeft > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background:
+                    timeLeft <= 10
+                      ? 'rgba(239, 68, 68, 0.2)'
+                      : timeLeft <= 20
+                      ? 'rgba(245, 158, 11, 0.18)'
+                      : 'var(--surface-2)',
+                  color:
+                    timeLeft <= 10
+                      ? 'var(--danger)'
+                      : timeLeft <= 20
+                      ? '#f59e0b'
+                      : 'var(--text)',
+                  border:
+                    timeLeft <= 10
+                      ? '1px solid var(--danger)'
+                      : timeLeft <= 20
+                      ? '1px solid #f59e0b'
+                      : '1px solid var(--line)',
+                  fontWeight: 800,
+                  fontFamily: 'monospace',
+                  fontSize: '0.85rem',
+                }}
+              >
+                <Timer size={14} style={{ color: timeLeft <= 10 ? 'var(--danger)' : timeLeft <= 20 ? '#f59e0b' : 'var(--accent)' }} />
+                <span>{timeLeft}s</span>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={onOpenProposalComposer}

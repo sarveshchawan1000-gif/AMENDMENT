@@ -140,21 +140,73 @@ def _fire_rules(state: dict, ctx: dict, trigger: str, turn: int) -> None:
             _apply_effect(rule["effect"], state, ctx, turn)
 
 
-def _get_active_rules(matching: list[tuple[int, dict]]) -> list[tuple[int, dict]]:
-    """Determine which rules fire, based on conflict resolution.
+# --- Conflict Key & Condition Normalization -----------------------------------
 
-    Conflict key = (trigger, effect.type, target).
+def normalize_predicate(pred: dict) -> tuple:
+    """Normalize a predicate dict into a deterministic, hashable tuple.
+
+    Handles sorting of args dictionary if present.
+    """
+    name = pred.get("name", "")
+    args = pred.get("args") or {}
+    args_tuple = tuple(sorted((str(k), v) for k, v in args.items()))
+    return (name, args_tuple)
+
+
+def normalize_condition(condition: dict | None) -> tuple:
+    """Normalize a rule condition dict into a deterministic, hashable tuple.
+
+    - Empty predicates, missing condition, or None normalize to ("always", ()).
+    - A single predicate normalizes to ("single", ((name, args),)).
+      Note: with 1 predicate, mode 'all' and 'any' evaluate identically.
+    - Multiple predicates normalize to (mode, sorted_unique_predicates).
+    """
+    if not condition:
+        return ("always", ())
+
+    preds = condition.get("predicates") or []
+    if not preds:
+        return ("always", ())
+
+    normalized_preds = set(normalize_predicate(p) for p in preds)
+    sorted_preds = tuple(sorted(normalized_preds))
+
+    if len(sorted_preds) == 1:
+        return ("single", sorted_preds)
+
+    mode = condition.get("mode", "all")
+    return (mode, sorted_preds)
+
+
+def get_rule_conflict_key(rule: dict) -> tuple:
+    """Return the conflict identity key for a rule:
+    (trigger, effect_type, effect_target, normalized_condition).
+
+    Rules conflict when their trigger, effect type, target, and logical conditions
+    are equivalent, but their effect amounts or values differ. Rules with different
+    conditions produce distinct keys and coexist.
+    """
+    trigger = rule.get("trigger")
+    effect = rule.get("effect", {})
+    etype = effect.get("type")
+    target = effect.get("target", "self")
+    norm_cond = normalize_condition(rule.get("condition"))
+    return (trigger, etype, target, norm_cond)
+
+
+def _get_active_rules(matching: list[tuple[int, dict]]) -> list[tuple[int, dict]]:
+    """Determine which rules fire, based on condition-aware conflict resolution.
+
+    Conflict key = (trigger, effect.type, target, normalized_condition).
     For each key:
       - immutable rules are always active;
       - among non-immutable rules, only the newest (highest index) is active.
     All active rules fire; their effects stack.
     """
-    # Group by conflict key
+    # Group by condition-aware conflict key
     groups: dict[tuple, list[tuple[int, dict]]] = {}
     for idx, rule in matching:
-        key = (rule["trigger"],
-               rule["effect"]["type"],
-               rule["effect"].get("target", "self"))
+        key = get_rule_conflict_key(rule)
         groups.setdefault(key, []).append((idx, rule))
 
     active: list[tuple[int, dict]] = []
@@ -163,12 +215,12 @@ def _get_active_rules(matching: list[tuple[int, dict]]) -> list[tuple[int, dict]
 
         # Immutable rules always active
         for idx, rule in rules_with_key:
-            if rule["immutable"]:
+            if rule.get("immutable"):
                 active.append((idx, rule))
 
         # Newest non-immutable is active (older ones suppressed)
         non_immutable = [(i, r) for i, r in rules_with_key
-                         if not r["immutable"]]
+                         if not r.get("immutable")]
         if non_immutable:
             active.append(non_immutable[-1])
 

@@ -1,0 +1,38 @@
+{
+  "game_id": "652b4444-fc73-4e1d-9c08-3106b8e604c3",
+  "mode": "hybrid",
+  "updated_at": "2026-10-26T17:33:37.215977+00:00",
+  "total_rules": 1,
+  "rules": [
+    {
+      "id": "A1",
+      "game_id": "652b4444-fc73-4e1d-9c08-3106b8e604c3",
+      "original_text": "Even roll grants +1 extra movement tile.",
+      "description": "Even roll grants +1 extra movement tile.",
+      "compiled_rule": {
+        "trigger": "on_roll",
+        "condition": {
+          "mode": "all",
+          "predicates": [
+            {
+              "name": "roll_is_even"
+            }
+          ]
+        },
+        "effect": {
+          "type": "move",
+          "amount": 1,
+          "target": "self"
+        },
+        "source": "Even roll grants +1 extra movement tile.",
+        "id": "A1",
+        "immutable": false
+      },
+      "proposer_id": "rulebook",
+      "proposer_name": "High Roller's Charter",
+      "created_at": "2026-10-26T17:33:37.215920+00:00",
+      "status": "active",
+      "order": 1
+    }
+  ]
+}
