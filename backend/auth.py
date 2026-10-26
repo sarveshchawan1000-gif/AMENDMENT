@@ -10,11 +10,19 @@ import re
 import time
 import uuid
 import threading
+from pathlib import Path
 from typing import Dict, Optional, Any, Tuple
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Depends, Request, Response, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
+
+try:
+    from dotenv import load_dotenv
+    _env_path = Path(__file__).resolve().parent / ".env"
+    load_dotenv(dotenv_path=_env_path)
+except ImportError:
+    pass
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
