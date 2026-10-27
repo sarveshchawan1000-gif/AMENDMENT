@@ -1,0 +1,77 @@
+{
+  "game_id": "974bd7b5-69b1-42a8-8871-8c835d06e9d3",
+  "mode": "hybrid",
+  "updated_at": "2026-10-27T10:22:51.474051+00:00",
+  "total_rules": 2,
+  "rules": [
+    {
+      "id": "AMEND_002",
+      "game_id": "974bd7b5-69b1-42a8-8871-8c835d06e9d3",
+      "original_text": "Advance +1 extra tile whenever you roll an even number.",
+      "description": "Advance +1 extra tile whenever you roll an even number.",
+      "compiled_rule": {
+        "id": "AMEND_002",
+        "trigger": "on_roll",
+        "condition": {
+          "mode": "all",
+          "predicates": [
+            {
+              "name": "roll_is_even"
+            }
+          ]
+        },
+        "effect": {
+          "type": "move",
+          "amount": 1,
+          "target": "self"
+        },
+        "source": "Advance +1 extra tile whenever you roll an even number.",
+        "title": "Even Momentum",
+        "description": "Advance +1 extra tile whenever you roll an even number.",
+        "category": "movement",
+        "immutable": false
+      },
+      "proposer_id": "rulebook",
+      "proposer_name": "High Roller's Charter",
+      "created_at": "2026-10-27T10:22:51.474022+00:00",
+      "status": "active",
+      "order": 1
+    },
+    {
+      "id": "AMEND_008",
+      "game_id": "974bd7b5-69b1-42a8-8871-8c835d06e9d3",
+      "original_text": "Gain +1 point at turn start if your score is strictly greater than 10.",
+      "description": "Gain +1 point at turn start if your score is strictly greater than 10.",
+      "compiled_rule": {
+        "id": "AMEND_008",
+        "trigger": "on_turn_start",
+        "condition": {
+          "mode": "all",
+          "predicates": [
+            {
+              "name": "score_gt",
+              "args": {
+                "value": 10
+              }
+            }
+          ]
+        },
+        "effect": {
+          "type": "add_score",
+          "amount": 1,
+          "target": "self"
+        },
+        "source": "Gain +1 point at turn start if your score is strictly greater than 10.",
+        "title": "High Scorer Bonus",
+        "description": "Gain +1 point at turn start if your score is strictly greater than 10.",
+        "category": "scoring",
+        "immutable": false
+      },
+      "proposer_id": "rulebook",
+      "proposer_name": "High Roller's Charter",
+      "created_at": "2026-10-27T10:22:51.474022+00:00",
+      "status": "active",
+      "order": 2
+    }
+  ]
+}

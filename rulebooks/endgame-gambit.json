@@ -1,0 +1,36 @@
+{
+  "name": "Endgame Gambit",
+  "board_sizes": [6, 8, 10],
+  "rules": [
+    {
+      "id": "AMEND_007",
+      "trigger": "win_check",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "set_win_target",
+        "amount": 25,
+        "target": "self"
+      },
+      "source": "Set the game victory threshold to 25 points."
+    },
+    {
+      "id": "AMEND_014",
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          { "name": "score_gt", "args": { "value": 15 } }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points at turn start if your score is greater than 15."
+    }
+  ]
+}

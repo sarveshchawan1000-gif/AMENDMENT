@@ -3,6 +3,7 @@
   "board_sizes": [6, 8, 10],
   "rules": [
     {
+      "id": "AMEND_065",
       "trigger": "on_land",
       "condition": {
         "mode": "all",
@@ -15,14 +16,14 @@
         "amount": 2,
         "target": "self"
       },
-      "source": "Last place player receives +2 points on landing."
+      "source": "Gain +2 points upon landing if you are in last place."
     },
     {
+      "id": "AMEND_004",
       "trigger": "on_roll",
       "condition": {
         "mode": "all",
         "predicates": [
-          { "name": "is_leader" },
           { "name": "roll_is_even" }
         ]
       },
@@ -31,7 +32,7 @@
         "amount": 1,
         "target": "last"
       },
-      "source": "Leader rolling even transfers 1 point to last place."
+      "source": "When you roll an even number, transfer 1 point from the leader to last place."
     }
   ]
 }

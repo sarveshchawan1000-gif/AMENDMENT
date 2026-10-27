@@ -1,0 +1,38 @@
+{
+  "name": "The Sovereign Code",
+  "board_sizes": [6, 8, 10],
+  "rules": [
+    {
+      "id": "AMEND_012",
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          { "name": "is_leader" }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Gain +1 point at the start of your turn if you are the leader."
+    },
+    {
+      "id": "AMEND_016",
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          { "name": "is_leader" }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points upon landing if you are the leader."
+    }
+  ]
+}

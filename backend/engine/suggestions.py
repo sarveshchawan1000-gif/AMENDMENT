@@ -14,11 +14,16 @@ from backend.engine.engine import _resolve_steal_target, get_rule_conflict_key
 
 def _is_rule_active(rule_payload: Dict[str, Any], active_rules: List[Dict[str, Any]]) -> bool:
     """Check if an equivalent rule is already active in the game."""
+    target_id = rule_payload.get("id") or rule_payload.get("amendment_id")
     target_source = (rule_payload.get("source") or "").strip().lower()
     target_key = get_rule_conflict_key(rule_payload)
     target_amount = rule_payload.get("effect", {}).get("amount")
 
     for r in active_rules:
+        # Check matching ID
+        if target_id and (r.get("id") == target_id or r.get("amendment_id") == target_id):
+            return True
+
         # Check matching source text
         active_source = (r.get("source") or "").strip().lower()
         if target_source and active_source and target_source == active_source:
@@ -115,6 +120,11 @@ def get_player_suggestions(
     catalog = get_all_amendments()
     eligible: List[Dict[str, Any]] = []
     for entry in catalog:
+        entry_id = str(entry.get("id", ""))
+        # Explicitly exclude test fixtures AMEND_901–AMEND_904
+        if entry_id.startswith("AMEND_9") or not entry_id.startswith("AMEND_"):
+            continue
+
         # Check validation metadata
         vmeta = entry.get("validation_metadata", {})
         if vmeta.get("is_valid") is not True:
@@ -130,7 +140,9 @@ def get_player_suggestions(
             continue
 
         # Check if already active
-        if _is_rule_active(payload, active_rules):
+        cand_payload = copy.deepcopy(payload)
+        cand_payload["id"] = entry_id
+        if _is_rule_active(cand_payload, active_rules):
             continue
 
         # Check state usability

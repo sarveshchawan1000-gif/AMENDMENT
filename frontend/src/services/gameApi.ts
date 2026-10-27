@@ -29,6 +29,8 @@ export interface BackendGameSettings {
   mode: 'draft' | 'live' | 'hybrid';
   max_rules: 8 | 12 | 16;
   amend_every?: 1 | 2;
+  rulebook_name?: string;
+  starting_rule_ids?: string[];
 }
 
 export interface BackendAmendmentPhase {
@@ -203,6 +205,50 @@ export async function fetchRulesBook(gameId: string) {
   return request<{ game_id: string; mode: string; rules: RulesBookItem[] }>(
     `/game/${encodeURIComponent(gameId)}/rules-book`,
   );
+}
+
+export interface BackendRulebookRule {
+  id: string;
+  title?: string;
+  description?: string;
+  category?: string;
+  trigger: string;
+  condition: Record<string, unknown>;
+  effect: Record<string, unknown>;
+  source?: string;
+}
+
+export interface BackendRulebook {
+  id: string;
+  name: string;
+  board_sizes?: number[];
+  rules: BackendRulebookRule[];
+}
+
+export async function fetchRulebooks(): Promise<BackendRulebook[]> {
+  return request<BackendRulebook[]>('/rulebooks');
+}
+
+export interface PredefinedCatalogRule {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  rule_payload: {
+    trigger: string;
+    condition: Record<string, unknown>;
+    effect: Record<string, unknown>;
+    source?: string;
+  };
+  validation_metadata?: {
+    is_valid: boolean;
+    min_board_size?: number;
+    tags?: string[];
+  };
+}
+
+export async function fetchPredefinedRules(): Promise<PredefinedCatalogRule[]> {
+  return request<PredefinedCatalogRule[]>('/rules/predefined');
 }
 
 export interface CourtCompileResult {

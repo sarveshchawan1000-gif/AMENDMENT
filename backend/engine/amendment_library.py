@@ -50,8 +50,9 @@ def get_amendment_by_id(amendment_id: str) -> Optional[Dict[str, Any]]:
 
 
 def get_valid_amendments() -> List[Dict[str, Any]]:
-    """Return all amendments flagged as valid in metadata."""
+    """Return all amendments flagged as valid in metadata (AMEND_001–AMEND_100)."""
     return [
         entry for entry in get_all_amendments()
         if entry.get("validation_metadata", {}).get("is_valid", False) is True
+        and not str(entry.get("id", "")).startswith("AMEND_9")
     ]

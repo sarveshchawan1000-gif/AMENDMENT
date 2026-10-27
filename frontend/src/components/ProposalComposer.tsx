@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Player } from '../types/game';
-import { STARTER_PROPOSALS } from '../data/rulebooks';
+import { STARTER_PROPOSALS, CANONICAL_STARTER_SUGGESTIONS } from '../data/rulebooks';
 import { fetchPlayerSuggestions, PredefinedSuggestion } from '../services/gameApi';
 import { useTheme } from '../theme/ThemeProvider';
 import {
@@ -310,106 +310,85 @@ export const ProposalComposer: React.FC<ProposalComposerProps> = ({
             )}
           </div>
 
-          {suggestions.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-              {suggestions.map((s) => {
-                const badgeStyle = getCategoryColor(s.category);
-                const isSelected = submittingId === s.id;
+          {(() => {
+            const displayedSuggestions = suggestions.length > 0 ? suggestions : CANONICAL_STARTER_SUGGESTIONS;
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+                {displayedSuggestions.map((s) => {
+                  const badgeStyle = getCategoryColor(s.category);
+                  const isSelected = submittingId === s.id;
 
-                return (
-                  <div
-                    key={s.id}
-                    style={{
-                      background: 'var(--surface-2)',
-                      border: '1px solid var(--line)',
-                      borderRadius: 'var(--radius-sm)',
-                      padding: '10px 14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '12px',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px', flexWrap: 'wrap' }}>
-                        <span
-                          style={{
-                            fontSize: '0.65rem',
-                            fontWeight: 800,
-                            padding: '1px 6px',
-                            borderRadius: '4px',
-                            background: badgeStyle.bg,
-                            border: `1px solid ${badgeStyle.border}`,
-                            color: badgeStyle.text,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.04em',
-                          }}
-                        >
-                          {s.category.replace('_', ' ')}
-                        </span>
-                        <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
-                          {s.id}
-                        </span>
-                        <strong style={{ fontSize: '0.85rem', color: 'var(--text)' }}>
-                          {s.title}
-                        </strong>
-                      </div>
-                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.35 }}>
-                        {s.description}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handlePredefinedClick(s.id, s.description)}
-                      disabled={isBusy}
-                      className="btn btn-secondary"
+                  return (
+                    <div
+                      key={s.id}
                       style={{
-                        padding: '6px 12px',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        flexShrink: 0,
-                        cursor: isBusy ? 'not-allowed' : 'pointer',
+                        background: 'var(--surface-2)',
+                        border: '1px solid var(--line)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '10px 14px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '5px',
-                        borderColor: isSelected ? 'var(--ok)' : undefined,
-                        color: isSelected ? 'var(--ok)' : undefined,
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        transition: 'all 0.15s ease',
                       }}
                     >
-                      <Zap size={13} style={{ color: 'var(--accent)' }} />
-                      {isSelected ? 'Enacting...' : 'Enact'}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {STARTER_PROPOSALS.slice(0, 4).map((suggestion, sIdx) => (
-                <button
-                  key={sIdx}
-                  type="button"
-                  onClick={() => handleSelectStarterFallback(suggestion)}
-                  disabled={isBusy}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--surface-2)',
-                    border: '1px solid var(--line)',
-                    color: 'var(--text)',
-                    fontSize: '0.76rem',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontFamily: 'var(--font-body)',
-                  }}
-                >
-                  &ldquo;{suggestion}&rdquo;
-                </button>
-              ))}
-            </div>
-          )}
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px', flexWrap: 'wrap' }}>
+                          <span
+                            style={{
+                              fontSize: '0.65rem',
+                              fontWeight: 800,
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              background: badgeStyle.bg,
+                              border: `1px solid ${badgeStyle.border}`,
+                              color: badgeStyle.text,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.04em',
+                            }}
+                          >
+                            {s.category.replace('_', ' ')}
+                          </span>
+                          <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
+                            {s.id}
+                          </span>
+                          <strong style={{ fontSize: '0.85rem', color: 'var(--text)' }}>
+                            {s.title}
+                          </strong>
+                        </div>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.35 }}>
+                          {s.description}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handlePredefinedClick(s.id, s.description)}
+                        disabled={isBusy}
+                        className="btn btn-secondary"
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          flexShrink: 0,
+                          cursor: isBusy ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          borderColor: isSelected ? 'var(--ok)' : undefined,
+                          color: isSelected ? 'var(--ok)' : undefined,
+                        }}
+                      >
+                        <Zap size={13} style={{ color: 'var(--accent)' }} />
+                        {isSelected ? 'Enacting...' : 'Enact'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
 
         {/* SECTION 2: Custom Amendment Proposal (AI Court Pipeline) */}

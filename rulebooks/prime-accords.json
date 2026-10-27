@@ -3,6 +3,7 @@
   "board_sizes": [6, 8, 10],
   "rules": [
     {
+      "id": "AMEND_001",
       "trigger": "on_land",
       "condition": {
         "mode": "all",
@@ -15,9 +16,10 @@
         "amount": 2,
         "target": "self"
       },
-      "source": "Landing on prime tile yields +2 score."
+      "source": "Gain +2 points whenever you land on a prime tile."
     },
     {
+      "id": "AMEND_009",
       "trigger": "on_roll",
       "condition": {
         "mode": "all",
@@ -30,7 +32,7 @@
         "amount": 1,
         "target": "self"
       },
-      "source": "Even dice roll yields +1 point."
+      "source": "Gain +1 point when you roll an even number."
     }
   ]
 }

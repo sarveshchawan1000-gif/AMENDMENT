@@ -1,0 +1,36 @@
+{
+  "name": "The Steady Path",
+  "board_sizes": [6, 8, 10],
+  "rules": [
+    {
+      "id": "AMEND_011",
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Gain +1 point upon landing on any tile."
+    },
+    {
+      "id": "AMEND_015",
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          { "name": "roll_is_even" }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points when landing after rolling an even number."
+    }
+  ]
+}

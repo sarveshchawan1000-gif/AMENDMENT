@@ -1,0 +1,74 @@
+{
+  "game_id": "d4ae781c-531b-4714-a4d0-bad6c9c71a8a",
+  "mode": "hybrid",
+  "updated_at": "2026-10-27T10:24:30.878701+00:00",
+  "total_rules": 2,
+  "rules": [
+    {
+      "id": "AMEND_065",
+      "game_id": "d4ae781c-531b-4714-a4d0-bad6c9c71a8a",
+      "original_text": "Gain +2 points upon landing if you are in last place.",
+      "description": "Gain +2 points upon landing if you are in last place.",
+      "compiled_rule": {
+        "id": "AMEND_065",
+        "trigger": "on_land",
+        "condition": {
+          "mode": "all",
+          "predicates": [
+            {
+              "name": "is_last"
+            }
+          ]
+        },
+        "effect": {
+          "type": "add_score",
+          "amount": 2,
+          "target": "self"
+        },
+        "source": "Gain +2 points upon landing if you are in last place.",
+        "title": "Tail-End Surge",
+        "description": "Gain +2 points upon landing if you are in last place.",
+        "category": "catch_up",
+        "immutable": false
+      },
+      "proposer_id": "rulebook",
+      "proposer_name": "The Catch-Up Doctrine",
+      "created_at": "2026-10-27T10:24:30.878660+00:00",
+      "status": "active",
+      "order": 1
+    },
+    {
+      "id": "AMEND_004",
+      "game_id": "d4ae781c-531b-4714-a4d0-bad6c9c71a8a",
+      "original_text": "When you roll an even number, transfer 1 point from the leader to last place.",
+      "description": "When you roll an even number, transfer 1 point from the leader to last place.",
+      "compiled_rule": {
+        "id": "AMEND_004",
+        "trigger": "on_roll",
+        "condition": {
+          "mode": "all",
+          "predicates": [
+            {
+              "name": "roll_is_even"
+            }
+          ]
+        },
+        "effect": {
+          "type": "steal_score",
+          "amount": 1,
+          "target": "last"
+        },
+        "source": "When you roll an even number, transfer 1 point from the leader to last place.",
+        "title": "Robin Hood Accord",
+        "description": "When you roll an even number, transfer 1 point from the leader to last place.",
+        "category": "disruption",
+        "immutable": false
+      },
+      "proposer_id": "rulebook",
+      "proposer_name": "The Catch-Up Doctrine",
+      "created_at": "2026-10-27T10:24:30.878660+00:00",
+      "status": "active",
+      "order": 2
+    }
+  ]
+}

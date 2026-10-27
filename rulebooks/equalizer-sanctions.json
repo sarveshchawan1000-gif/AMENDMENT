@@ -1,0 +1,36 @@
+{
+  "name": "Equalizer Sanctions",
+  "board_sizes": [6, 8, 10],
+  "rules": [
+    {
+      "id": "AMEND_003",
+      "trigger": "on_turn_start",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          { "name": "is_last" }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points at the start of your turn if you are in last place."
+    },
+    {
+      "id": "AMEND_005",
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": []
+      },
+      "effect": {
+        "type": "steal_score",
+        "amount": 1,
+        "target": "leader"
+      },
+      "source": "When you land on any tile, steal 1 point from the current leader."
+    }
+  ]
+}

@@ -191,7 +191,7 @@ def load_rulebook(rulebook: dict, board_size: int, max_rules: int
     loaded: list[dict] = []
     for i, rule in enumerate(to_load):
         r = copy.deepcopy(rule)
-        r["id"] = f"A{i + 1}"
+        r["id"] = rule.get("id") or f"A{i + 1}"
         r["immutable"] = False  # override file value
         if "source" not in r:
             r["source"] = f"Rulebook: {name}"

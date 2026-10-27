@@ -198,6 +198,12 @@ export const App: React.FC = () => {
         win_target: config.winTarget,
         mode: config.mode,
         max_rules: 12 as const,
+        ...(config.mode === 'hybrid' && config.selectedRulebookId
+          ? { rulebook_name: config.selectedRulebookId }
+          : {}),
+        ...(config.mode === 'hybrid' && config.selectedStartingRuleIds && config.selectedStartingRuleIds.length > 0
+          ? { starting_rule_ids: config.selectedStartingRuleIds }
+          : {}),
         ...((config.mode === 'live' || config.mode === 'hybrid')
           ? { amend_every: (config.amendmentCadenceMoves || 1) as 1 | 2 }
           : {}),
@@ -239,19 +245,58 @@ export const App: React.FC = () => {
 
     let initialRules: CompiledRule[] = [...BASE_RULES];
 
-    // If Hybrid mode, add the bundled curated rules
-    if (config.mode === 'hybrid' && config.selectedRulebookId) {
-      const book = BUNDLED_RULEBOOKS.find((b) => b.id === config.selectedRulebookId);
-      if (book) {
-        const bundledCompiled: CompiledRule[] = book.rules.map((r) => ({
-          ...r,
-          proposer_id: 'rulebook',
-          proposer_name: book.title,
-          creation_turn: 0,
-          active_from_turn: 1,
-          status: 'active',
-        }));
-        initialRules = [...initialRules, ...bundledCompiled];
+    // If Hybrid mode, add the bundled curated rules or custom selected starting rules
+    if (config.mode === 'hybrid') {
+      if (config.selectedStartingRuleIds && config.selectedStartingRuleIds.length > 0) {
+        const allKnownRules = BUNDLED_RULEBOOKS.flatMap((b) => b.rules);
+        const customRules: CompiledRule[] = config.selectedStartingRuleIds.map((rid) => {
+          const match = allKnownRules.find((r) => r.id === rid);
+          if (match) {
+            return {
+              ...match,
+              proposer_id: 'rulebook',
+              proposer_name: 'Custom Accord',
+              creation_turn: 0,
+              active_from_turn: 1,
+              status: 'active',
+            };
+          }
+          return {
+            id: rid,
+            schema_version: '1.0',
+            title: `Amendment ${rid}`,
+            original_text: `Predefined rule ${rid}`,
+            normalized_rule: `Rule ${rid}`,
+            readable_meaning: `Predefined rule ${rid}`,
+            proposer_id: 'rulebook',
+            proposer_name: 'Custom Accord',
+            creation_turn: 0,
+            trigger: 'on_land',
+            condition: 'always',
+            effect: 'add_score',
+            effect_value: 1,
+            target: 'active_player',
+            duration: 'permanent',
+            activation_boundary: 'immediate',
+            active_from_turn: 1,
+            status: 'active',
+            is_base_rule: false,
+          };
+        });
+        initialRules = [...initialRules, ...customRules];
+      } else if (config.selectedRulebookId) {
+        const book = BUNDLED_RULEBOOKS.find((b) => b.id === config.selectedRulebookId);
+        if (book) {
+          const bundledCompiled: CompiledRule[] = book.rules.map((r) => ({
+            ...r,
+            proposer_id: 'rulebook',
+            proposer_name: book.title,
+            creation_turn: 0,
+            active_from_turn: 1,
+            status: 'active',
+          }));
+          initialRules = [...initialRules, ...bundledCompiled];
+        }
       }
     }
 

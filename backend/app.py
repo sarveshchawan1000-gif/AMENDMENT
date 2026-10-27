@@ -34,7 +34,7 @@ import copy
 from backend.engine.state import create_game, add_amendment, select_rulebook
 from backend.engine.engine import execute_turn
 from backend.engine.validate import can_amend, validate_rule as engine_validate_rule
-from backend.engine.amendment_library import get_amendment_by_id
+from backend.engine.amendment_library import get_amendment_by_id, get_valid_amendments
 from backend.engine.suggestions import get_player_suggestions
 
 # Court imports
@@ -105,6 +105,8 @@ class GameSettings(BaseModel):
     mode: str = Field(..., description="Game mode: draft, live, or hybrid")
     max_rules: int = Field(..., description="Maximum rules (8, 12, or 16)")
     amend_every: Optional[int] = Field(None, description="For live mode: amend every N moves (1 or 2)")
+    rulebook_name: Optional[str] = Field(None, description="Optional rulebook name/id to load in hybrid mode")
+    starting_rule_ids: Optional[List[str]] = Field(None, description="Optional list of canonical rule IDs (AMEND_001–AMEND_100) to load as starting rules")
 
 
 class CreateGameRequest(BaseModel):
@@ -318,17 +320,37 @@ def load_rulebooks(rulebooks_dir: Optional[Path] = None) -> List[dict]:
                         print(f"Skipping {filepath.name}: Invalid board size {size} (must be 6, 8, or 10)", file=sys.stderr)
                         continue
 
-            # Validate each rule using engine validator
+            # Validate each rule using engine validator and ensure canonical consistency
             all_rules_valid = True
             for idx, rule in enumerate(rulebook["rules"]):
+                rule_id = rule.get("id")
+                # Reject invalid test fixtures AMEND_901–AMEND_904
+                if rule_id and (rule_id.startswith("AMEND_9") or rule_id in ["AMEND_901", "AMEND_902", "AMEND_903", "AMEND_904"]):
+                    print(f"Skipping {filepath.name}: Rule {idx} is invalid test fixture {rule_id}", file=sys.stderr)
+                    all_rules_valid = False
+                    break
+
                 valid, error = engine_validate_rule(rule)
                 if not valid:
                     print(f"Skipping {filepath.name}: Rule {idx} invalid - {error}", file=sys.stderr)
                     all_rules_valid = False
                     break
 
+                # Enrich with canonical catalog metadata if rule ID exists in catalog
+                if rule_id:
+                    canon_entry = get_amendment_by_id(rule_id)
+                    if canon_entry:
+                        rule.setdefault("title", canon_entry.get("title", ""))
+                        rule.setdefault("description", canon_entry.get("description", ""))
+                        rule.setdefault("category", canon_entry.get("category", "general"))
+                        if not rule.get("source") and canon_entry.get("rule_payload", {}).get("source"):
+                            rule["source"] = canon_entry["rule_payload"]["source"]
+
             if not all_rules_valid:
                 continue
+
+            # Assign id matching file stem if absent
+            rulebook.setdefault("id", filepath.stem)
 
             # All validations passed
             rulebooks.append(rulebook)
@@ -433,21 +455,92 @@ async def create_new_game(request: CreateGameRequest):
     # Handle hybrid mode - select rulebook
     rulebook = None
     if settings_dict["mode"] == "hybrid":
-        rulebooks = load_rulebooks()
-        if not rulebooks:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="No rulebooks available for hybrid mode"
-            )
+        if settings_dict.get("starting_rule_ids"):
+            requested_ids = settings_dict["starting_rule_ids"]
+            if not isinstance(requested_ids, list) or len(requested_ids) == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="starting_rule_ids must be a non-empty list of rule IDs"
+                )
+            selected_rules = []
+            for rid in requested_ids:
+                if not isinstance(rid, str) or rid.startswith("AMEND_9") or rid in ["AMEND_901", "AMEND_902", "AMEND_903", "AMEND_904"]:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Invalid rule fixture {rid} not allowed"
+                    )
+                entry = get_amendment_by_id(rid)
+                if not entry:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Rule ID {rid} not found in canonical amendment library"
+                    )
+                vmeta = entry.get("validation_metadata", {})
+                if vmeta.get("is_valid") is not True:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Rule ID {rid} is flagged as invalid"
+                    )
+                min_board = vmeta.get("min_board_size")
+                if min_board and settings_dict["board_size"] < min_board:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Rule {rid} requires minimum board size {min_board}"
+                    )
+                valid, err = engine_validate_rule(entry["rule_payload"])
+                if not valid:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Rule {rid} failed engine validation: {err}"
+                    )
+                r_payload = copy.deepcopy(entry["rule_payload"])
+                r_payload["id"] = rid
+                r_payload["title"] = entry.get("title", "")
+                r_payload["description"] = entry.get("description", "")
+                r_payload["category"] = entry.get("category", "general")
+                if not r_payload.get("source"):
+                    r_payload["source"] = entry.get("description", "")
+                selected_rules.append(r_payload)
 
-        try:
-            rng = get_rng()
-            rulebook = select_rulebook(rulebooks, settings_dict["board_size"], rng)
-        except ValueError as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"No compatible rulebook found: {e}"
-            )
+            rulebook = {
+                "id": "custom-rulebook",
+                "name": settings_dict.get("rulebook_name") or "Custom Amendment Accord",
+                "board_sizes": [6, 8, 10],
+                "rules": selected_rules,
+            }
+        else:
+            rulebooks = load_rulebooks()
+            if not rulebooks:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="No rulebooks available for hybrid mode"
+                )
+
+            try:
+                rng = get_rng()
+                if settings_dict.get("rulebook_name"):
+                    target = str(settings_dict["rulebook_name"]).strip().lower()
+                    matching = [
+                        rb for rb in rulebooks
+                        if rb.get("name", "").strip().lower() == target
+                        or rb.get("id", "").strip().lower() == target
+                    ]
+                    compatible_matching = [
+                        rb for rb in matching
+                        if "board_sizes" not in rb or not rb["board_sizes"]
+                        or settings_dict["board_size"] in rb["board_sizes"]
+                    ]
+                    if compatible_matching:
+                        rulebook = compatible_matching[0]
+                    else:
+                        rulebook = select_rulebook(rulebooks, settings_dict["board_size"], rng)
+                else:
+                    rulebook = select_rulebook(rulebooks, settings_dict["board_size"], rng)
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"No compatible rulebook found: {e}"
+                )
 
     # Create game state
     try:
@@ -1027,6 +1120,12 @@ async def list_rulebooks():
     """
     rulebooks = load_rulebooks()
     return rulebooks
+
+
+@app.get("/rules/predefined")
+async def list_predefined_rules():
+    """Return all valid predefined rules from the canonical catalog (AMEND_001–AMEND_100)."""
+    return get_valid_amendments()
 
 
 @app.get("/{full_path:path}")

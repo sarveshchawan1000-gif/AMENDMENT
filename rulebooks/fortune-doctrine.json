@@ -1,0 +1,38 @@
+{
+  "name": "Fortune & Momentum",
+  "board_sizes": [6, 8, 10],
+  "rules": [
+    {
+      "id": "AMEND_006",
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          { "name": "roll_is_even" }
+        ]
+      },
+      "effect": {
+        "type": "reroll",
+        "amount": 0,
+        "target": "self"
+      },
+      "source": "If you roll an even number, reroll your dice once."
+    },
+    {
+      "id": "AMEND_020",
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          { "name": "roll_is_even" }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 2,
+        "target": "self"
+      },
+      "source": "Gain +2 points whenever you roll an even number."
+    }
+  ]
+}

@@ -141,6 +141,7 @@ export interface GameConfig {
   mode: RuleMode;
   theme: ThemeMode;
   selectedRulebookId?: string;
+  selectedStartingRuleIds?: string[];
   amendmentCadenceMoves: number; // e.g., 1 or 2 turns between proposals
   allowGemmaProposals: boolean;
   simulateOfflineModel: boolean;

@@ -1,0 +1,74 @@
+{
+  "game_id": "8ad98152-8243-47cc-90b6-efe1d854cea7",
+  "mode": "hybrid",
+  "updated_at": "2026-10-27T10:22:51.439748+00:00",
+  "total_rules": 2,
+  "rules": [
+    {
+      "id": "AMEND_001",
+      "game_id": "8ad98152-8243-47cc-90b6-efe1d854cea7",
+      "original_text": "Gain +2 points whenever you land on a prime tile.",
+      "description": "Gain +2 points whenever you land on a prime tile.",
+      "compiled_rule": {
+        "id": "AMEND_001",
+        "trigger": "on_land",
+        "condition": {
+          "mode": "all",
+          "predicates": [
+            {
+              "name": "tile_is_prime"
+            }
+          ]
+        },
+        "effect": {
+          "type": "add_score",
+          "amount": 2,
+          "target": "self"
+        },
+        "source": "Gain +2 points whenever you land on a prime tile.",
+        "title": "Prime Sanctuary",
+        "description": "Gain +2 points whenever you land on a prime tile.",
+        "category": "scoring",
+        "immutable": false
+      },
+      "proposer_id": "rulebook",
+      "proposer_name": "Prime Tax & Accords",
+      "created_at": "2026-10-27T10:22:51.439593+00:00",
+      "status": "active",
+      "order": 1
+    },
+    {
+      "id": "AMEND_009",
+      "game_id": "8ad98152-8243-47cc-90b6-efe1d854cea7",
+      "original_text": "Gain +1 point when you roll an even number.",
+      "description": "Gain +1 point when you roll an even number.",
+      "compiled_rule": {
+        "id": "AMEND_009",
+        "trigger": "on_roll",
+        "condition": {
+          "mode": "all",
+          "predicates": [
+            {
+              "name": "roll_is_even"
+            }
+          ]
+        },
+        "effect": {
+          "type": "add_score",
+          "amount": 1,
+          "target": "self"
+        },
+        "source": "Gain +1 point when you roll an even number.",
+        "title": "Double Even Dividend",
+        "description": "Gain +1 point when you roll an even number.",
+        "category": "scoring",
+        "immutable": false
+      },
+      "proposer_id": "rulebook",
+      "proposer_name": "Prime Tax & Accords",
+      "created_at": "2026-10-27T10:22:51.439593+00:00",
+      "status": "active",
+      "order": 2
+    }
+  ]
+}

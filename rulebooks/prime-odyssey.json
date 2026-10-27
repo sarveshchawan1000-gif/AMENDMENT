@@ -1,0 +1,38 @@
+{
+  "name": "Prime Odyssey",
+  "board_sizes": [6, 8, 10],
+  "rules": [
+    {
+      "id": "AMEND_010",
+      "trigger": "on_roll",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          { "name": "tile_is_prime" }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 1,
+        "target": "self"
+      },
+      "source": "Gain +1 point on roll if currently on a prime tile."
+    },
+    {
+      "id": "AMEND_013",
+      "trigger": "on_land",
+      "condition": {
+        "mode": "all",
+        "predicates": [
+          { "name": "tile_is_prime" }
+        ]
+      },
+      "effect": {
+        "type": "add_score",
+        "amount": 3,
+        "target": "self"
+      },
+      "source": "Gain +3 points whenever you land on a prime tile."
+    }
+  ]
+}
