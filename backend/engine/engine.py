@@ -13,6 +13,7 @@ Each rule fires at most once per trigger phase per turn.  Effects never
 re-trigger rules in the same or earlier phases (no chaining).
 """
 from __future__ import annotations
+from typing import Any
 
 from .board import is_prime
 from .dice import roll_dice
@@ -28,6 +29,9 @@ def execute_turn(state: dict, rng) -> dict:
     Mutates ``state`` in place and returns it.
     ``rng`` is an injectable random.Random for deterministic tests.
     """
+    if state.get("phase") == "finished":
+        return state
+
     players = state["players"]
     acting_idx = state["current_player"]
     acting_player = players[acting_idx]
@@ -93,13 +97,17 @@ def execute_turn(state: dict, rng) -> dict:
     ctx["trigger"] = "win_check"
     _fire_rules(state, ctx, "win_check", turn)
 
-    # Engine win check (R3 hardcoded): any player at/above win_target wins.
+    # Engine win check (R3 hardcoded): player with highest score at/above win_target wins.
     win_target = state["settings"]["win_target"]
-    for p in players:
-        if p["score"] >= win_target:
-            state["winner"] = p["id"]
-            state["phase"] = "finished"
-            break
+    contenders = [p for p in players if p["score"] >= win_target]
+    if contenders:
+        ranks = rank_players(players)
+        best_contender = min(
+            contenders,
+            key=lambda p: (ranks[players.index(p)], players.index(p))
+        )
+        state["winner"] = best_contender["id"]
+        state["phase"] = "finished"
 
     # Record the actor for the completed normal turn.
     state["last_actor_id"] = acting_player["id"]
@@ -142,6 +150,15 @@ def _fire_rules(state: dict, ctx: dict, trigger: str, turn: int) -> None:
 
 # --- Conflict Key & Condition Normalization -----------------------------------
 
+def _make_hashable(val: Any) -> Any:
+    """Recursively convert lists and dicts to hashable tuples."""
+    if isinstance(val, (list, tuple)):
+        return tuple(_make_hashable(x) for x in val)
+    if isinstance(val, dict):
+        return tuple(sorted((str(k), _make_hashable(v)) for k, v in val.items()))
+    return val
+
+
 def normalize_predicate(pred: dict) -> tuple:
     """Normalize a predicate dict into a deterministic, hashable tuple.
 
@@ -149,7 +166,7 @@ def normalize_predicate(pred: dict) -> tuple:
     """
     name = pred.get("name", "")
     args = pred.get("args") or {}
-    args_tuple = tuple(sorted((str(k), v) for k, v in args.items()))
+    args_tuple = tuple(sorted((str(k), _make_hashable(v)) for k, v in args.items()))
     return (name, args_tuple)
 
 

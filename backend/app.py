@@ -18,6 +18,7 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 import jsonschema
 
@@ -73,6 +74,18 @@ app.add_middleware(
 
 # In-memory game storage (for hackathon MVP - replace with DB in production)
 games: Dict[str, dict] = {}
+MAX_STORED_GAMES: int = 1000
+
+def _store_game(game_id: str, state: dict) -> None:
+    """Store game state with LRU/capacity guard to prevent memory exhaustion."""
+    if len(games) >= MAX_STORED_GAMES and game_id not in games:
+        finished_keys = [k for k, v in games.items() if v.get("phase") == "finished"]
+        if finished_keys:
+            del games[finished_keys[0]]
+        elif games:
+            oldest_key = next(iter(games))
+            del games[oldest_key]
+    games[game_id] = state
 
 # Injectable RNG factory for deterministic tests
 _rng_factory = lambda: random.Random()
@@ -451,6 +464,23 @@ async def create_new_game(request: CreateGameRequest):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="At least 2 players required"
         )
+    if len(players_list) > 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximum 4 players allowed"
+        )
+    for p in players_list:
+        p_name = p.get("name", "").strip()
+        if not p_name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Player name cannot be empty"
+            )
+        if len(p_name) > 50:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Player name cannot exceed 50 characters"
+            )
 
     # Handle hybrid mode - select rulebook
     rulebook = None
@@ -561,7 +591,7 @@ async def create_new_game(request: CreateGameRequest):
                 rulebook_name=rulebook_name,
             )
 
-        games[game_id] = state
+        _store_game(game_id, state)
 
         return CreateGameResponse(game_id=game_id, state=state)
 
@@ -864,7 +894,7 @@ async def submit_amendment(game_id: str, request: AmendRequest):
     # Route 2: Custom natural language proposal (invokes AI Court)
     else:
         try:
-            court_response = compile_amendment(request.text.strip(), state, engine_validate_rule)
+            court_response = await run_in_threadpool(compile_amendment, request.text.strip(), state, engine_validate_rule)
         except Exception as e:
             # Infrastructure failure: do NOT consume opportunity or advance turn
             return AmendResponse(
@@ -1094,7 +1124,7 @@ async def court_compile_endpoint(request: CourtCompileRequest):
     }
 
     try:
-        result = compile_amendment(request.text, state, engine_validate_rule)
+        result = await run_in_threadpool(compile_amendment, request.text, state, engine_validate_rule)
     except Exception as e:
         return CourtCompileResponse(
             accepted=False,

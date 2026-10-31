@@ -43,7 +43,7 @@ def validate_rule(rule: dict) -> tuple[bool, str | None]:
             return False, f"Invalid predicate: {pred['name']!r}"
         if pred["name"] == "score_gt":
             args = pred.get("args", {})
-            if "value" not in args or not isinstance(args["value"], int):
+            if "value" not in args or not isinstance(args["value"], int) or isinstance(args["value"], bool):
                 return False, "score_gt requires args.value (int)"
 
     # effect
@@ -52,10 +52,15 @@ def validate_rule(rule: dict) -> tuple[bool, str | None]:
     effect = rule["effect"]
     if "type" not in effect or effect["type"] not in VALID_EFFECT_TYPES:
         return False, f"Invalid effect.type: {effect.get('type')!r}"
-    if "amount" not in effect or not isinstance(effect["amount"], int):
+    if "amount" not in effect or not isinstance(effect["amount"], int) or isinstance(effect["amount"], bool):
         return False, "Missing or non-int effect.amount"
-    if "target" not in effect or effect["target"] not in VALID_TARGETS:
-        return False, f"Invalid effect.target: {effect.get('target')!r}"
+    if "target" not in effect:
+        return False, "Missing 'effect.target'"
+    if effect["target"] not in VALID_TARGETS:
+        if effect["type"] == "set_win_target" and effect["target"] == "ignored":
+            effect["target"] = "self"
+        else:
+            return False, f"Invalid effect.target: {effect.get('target')!r}"
 
     # caps (validate, don't clamp here)
     if effect["type"] == "set_win_target":

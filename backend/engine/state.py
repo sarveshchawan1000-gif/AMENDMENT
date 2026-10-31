@@ -231,10 +231,13 @@ def add_amendment(state: dict, rule: dict) -> tuple[bool, str | None]:
     if not check_max_rules(state):
         return False, f"Max rules ({state['settings']['max_rules']}) reached"
 
-    # Assign amendment ID (A1, A2, … based on existing amendment count)
-    amend_count = sum(1 for r in state["rules"] if r["id"].startswith("A"))
+    # Assign unique amendment ID (A1, A2, … guaranteed non-colliding)
+    existing_ids = {r.get("id") for r in state["rules"]}
+    num = 1
+    while f"A{num}" in existing_ids:
+        num += 1
     r = copy.deepcopy(rule)
-    r["id"] = f"A{amend_count + 1}"
+    r["id"] = f"A{num}"
     r["immutable"] = False
     if "source" not in r:
         r["source"] = ""

@@ -72,7 +72,7 @@ Effect types:
 - move (amount ±{amount_cap}, target)
 - skip_turn (amount 0, target)
 - reroll (amount 0, target self)
-- set_win_target (amount {win_target_min}-{win_target_max}, target ignored)
+- set_win_target (amount {win_target_min}-{win_target_max}, target: self)
 
 Targets: {targets}
 
@@ -313,6 +313,24 @@ def compile_amendment(
         - error (str|None): Error message if rejected or None
         - category (str): 'accepted', 'not_a_game_rule', 'invalid_rule', or 'court_error'
     """
+    trimmed = text.strip() if text else ""
+    if not trimmed:
+        return {
+            "accepted": False,
+            "category": "not_a_game_rule",
+            "rule": None,
+            "error": "Proposal text cannot be empty. Please propose a rule that changes the gameplay.",
+        }
+
+    MAX_PROPOSAL_LENGTH = 500
+    if len(trimmed) > MAX_PROPOSAL_LENGTH:
+        return {
+            "accepted": False,
+            "category": "not_a_game_rule",
+            "rule": None,
+            "error": f"Proposal text exceeds maximum length of {MAX_PROPOSAL_LENGTH} characters.",
+        }
+
     # Build system prompt with game context
     system_prompt = build_system_prompt(state)
 
@@ -406,6 +424,11 @@ def compile_amendment(
             # Add source if missing
             if "source" not in rule:
                 rule["source"] = text
+
+            # Normalize set_win_target target to "self" if missing or set to "ignored"
+            if isinstance(rule.get("effect"), dict) and rule["effect"].get("type") == "set_win_target":
+                if rule["effect"].get("target") in (None, "", "ignored") or rule["effect"].get("target") not in VALID_TARGETS:
+                    rule["effect"]["target"] = "self"
 
             # Validate the rule structure using engine validator if provided
             if validate_rule_fn:
