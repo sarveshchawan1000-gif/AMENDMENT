@@ -28,6 +28,34 @@ class ProviderModelNotFoundError(ProviderError):
     pass
 
 
+class ProviderRateLimitError(ProviderError):
+    """Raised when a provider returns HTTP 429 rate limit exceeded."""
+    def __init__(self, message: str, is_daily_quota: bool = False, retry_after: Optional[int] = None):
+        super().__init__(message)
+        self.is_daily_quota = is_daily_quota
+        self.retry_after = retry_after
+
+
+class ProviderAuthError(ProviderError):
+    """Raised when a provider returns HTTP 401 authentication failure."""
+    pass
+
+
+class ProviderPermissionError(ProviderError):
+    """Raised when a provider returns HTTP 403 permission or access denied."""
+    pass
+
+
+class ProviderInvalidRequestError(ProviderError):
+    """Raised when a provider returns HTTP 400 bad/malformed request."""
+    pass
+
+
+class ProviderServerError(ProviderError):
+    """Raised when a provider returns HTTP 5xx internal server error."""
+    pass
+
+
 class LLMProvider(ABC):
     """
     Abstract base class for LLM providers.

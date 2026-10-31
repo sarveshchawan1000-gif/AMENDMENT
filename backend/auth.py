@@ -10,22 +10,76 @@ import re
 import time
 import uuid
 import threading
+from pathlib import Path
 from typing import Dict, Optional, Any, Tuple
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Depends, Request, Response, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-# pyrefly: ignore[missing-import]
 import jwt
+
+try:
+    from dotenv import load_dotenv
+    _env_path = Path(__file__).resolve().parent / ".env"
+    load_dotenv(dotenv_path=_env_path)
+except ImportError:
+    pass
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-JWT_SECRET: str = os.getenv("JWT_SECRET", "amendment-dev-secret-key-change-in-prod")
+DEV_JWT_SECRET = "amendment-dev-secret-key-change-in-prod"
+
+
+def validate_jwt_secret() -> str:
+    """
+    Validate and return JWT_SECRET.
+    In production mode (ENVIRONMENT='production' / 'prod'):
+      - Missing secret fails fast with RuntimeError.
+      - Known development default fails fast with RuntimeError.
+      - Secret shorter than 32 characters fails fast with RuntimeError.
+    In development mode:
+      - Falls back to DEV_JWT_SECRET if not supplied.
+    NEVER print or log the secret value.
+    """
+    env = os.getenv("ENVIRONMENT", os.getenv("APP_ENV", os.getenv("ENV", "development"))).lower()
+    is_prod = env in ("production", "prod")
+    secret = os.getenv("JWT_SECRET", "").strip()
+
+    if is_prod:
+        if not secret:
+            raise RuntimeError(
+                "Production startup failed: JWT_SECRET environment variable is missing. "
+                "A strong secret (at least 32 characters) must be configured in production."
+            )
+        if secret == DEV_JWT_SECRET or secret.lower() in ("changeme", "secret", "password"):
+            raise RuntimeError(
+                "Production startup failed: JWT_SECRET cannot use the development default. "
+                "A strong, unique secret (at least 32 characters) must be configured in production."
+            )
+        if len(secret) < 32:
+            raise RuntimeError(
+                "Production startup failed: JWT_SECRET is too short. "
+                "Must be at least 32 characters for sufficient entropy."
+            )
+        return secret
+
+    return secret or DEV_JWT_SECRET
+
+
+JWT_SECRET: str = validate_jwt_secret()
 JWT_ALGORITHM: str = "HS256"
 JWT_EXPIRATION_SECONDS: int = 7 * 24 * 3600  # 7 days
 
 GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "").strip()
 
 security = HTTPBearer(auto_error=False)
+
+
+def get_client_ip(request: Request) -> str:
+    """Extract client IP, inspecting X-Forwarded-For when behind a reverse proxy."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "127.0.0.1"
 
 
 # --- Consistent API Error Exception ---
@@ -68,7 +122,7 @@ auth_rate_limiter = InMemoryRateLimiter(max_requests=30, window_seconds=60.0)
 
 
 def check_auth_rate_limit(request: Request) -> None:
-    client_ip = request.client.host if request.client else "127.0.0.1"
+    client_ip = get_client_ip(request)
     if not auth_rate_limiter.is_allowed(client_ip):
         raise APIError(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,

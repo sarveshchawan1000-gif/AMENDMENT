@@ -34,6 +34,44 @@ class FixedRNG:
 
 # --- Fixtures -----------------------------------------------------------------
 
+@pytest.fixture(autouse=True)
+def reset_test_state():
+    """Reset rate limiters and rule cache for clean test isolation."""
+    try:
+        from backend.auth import auth_rate_limiter
+        auth_rate_limiter._requests.clear()
+    except Exception:
+        pass
+
+    try:
+        from backend.rooms import create_rate_limiter, join_rate_limiter
+        create_rate_limiter._requests.clear()
+        join_rate_limiter._requests.clear()
+    except Exception:
+        pass
+
+    try:
+        from backend.app import game_create_rate_limiter, court_compile_rate_limiter
+        game_create_rate_limiter._requests.clear()
+        court_compile_rate_limiter._requests.clear()
+    except Exception:
+        pass
+
+    try:
+        from backend.court.cache import rule_cache
+        rule_cache.clear()
+    except Exception:
+        pass
+
+    yield
+
+    try:
+        from backend.court.cache import rule_cache
+        rule_cache.clear()
+    except Exception:
+        pass
+
+
 @pytest.fixture
 def rng():
     """Deterministic RNG seeded at 42."""

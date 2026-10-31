@@ -14,10 +14,11 @@ import threading
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.security import HTTPAuthorizationCredentials
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 import jsonschema
@@ -28,6 +29,14 @@ _repo_root = _backend_dir.parent
 for _p in [str(_repo_root), str(_backend_dir)]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
+
+try:
+    from dotenv import load_dotenv
+    _env_path = _backend_dir / ".env"
+    if _env_path.exists():
+        load_dotenv(dotenv_path=_env_path)
+except ImportError:
+    pass
 
 import copy
 
@@ -61,12 +70,63 @@ app = FastAPI(
 )
 
 # CORS middleware for frontend integration
-raw_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
-ALLOWED_ORIGINS = [o.strip() for o in raw_origins if o.strip()]
+DEV_DEFAULT_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+]
+
+
+def get_cors_configuration() -> Tuple[List[str], bool]:
+    """
+    Configure and validate CORS settings.
+    In production mode (ENVIRONMENT='production' / 'prod'):
+      - ALLOWED_ORIGINS must be explicitly provided.
+      - Wildcard '*' is strictly forbidden with credentialed requests.
+      - Origins must be valid http:// or https:// URLs.
+    In development mode:
+      - If ALLOWED_ORIGINS is not set or empty, defaults to local dev origins with allow_credentials=True.
+      - If explicitly set with '*', allow_credentials is False.
+    """
+    env = os.getenv("ENVIRONMENT", os.getenv("APP_ENV", os.getenv("ENV", "development"))).lower()
+    is_prod = env in ("production", "prod")
+    raw_env = os.getenv("ALLOWED_ORIGINS", "").strip()
+
+    if is_prod:
+        if not raw_env or raw_env == "*":
+            raise RuntimeError(
+                "Production startup failed: ALLOWED_ORIGINS must be set to one or more explicit frontend domains "
+                "(e.g. ALLOWED_ORIGINS=https://amendment.game). Wildcard '*' is strictly forbidden with credentialed requests."
+            )
+        origins = [o.strip() for o in raw_env.split(",") if o.strip()]
+        if not origins or any(o == "*" for o in origins):
+            raise RuntimeError(
+                "Production startup failed: ALLOWED_ORIGINS cannot contain wildcard '*' in production."
+            )
+        for o in origins:
+            if not (o.startswith("http://") or o.startswith("https://")):
+                raise RuntimeError(
+                    f"Production startup failed: Invalid origin '{o}' in ALLOWED_ORIGINS. "
+                    "Must start with http:// or https://."
+                )
+        return origins, True
+
+    if not raw_env:
+        return DEV_DEFAULT_ORIGINS, True
+
+    origins = [o.strip() for o in raw_env.split(",") if o.strip()]
+    if "*" in origins:
+        return ["*"], False
+    return origins, True
+
+
+cors_origins, cors_allow_credentials = get_cors_configuration()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if "*" in ALLOWED_ORIGINS else ALLOWED_ORIGINS,
-    allow_credentials=True if "*" not in ALLOWED_ORIGINS else False,
+    allow_origins=cors_origins,
+    allow_credentials=cors_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -86,6 +146,63 @@ def _store_game(game_id: str, state: dict) -> None:
             oldest_key = next(iter(games))
             del games[oldest_key]
     games[game_id] = state
+
+# Multiplayer and Auth routers
+from backend.auth import (
+    router as auth_router,
+    get_current_user,
+    User,
+    security,
+    InMemoryRateLimiter,
+    get_client_ip,
+    validate_jwt_secret,
+)
+from backend.rooms import router as rooms_router, set_game_creator, Room
+
+app.include_router(auth_router)
+app.include_router(rooms_router)
+
+# Rate limiters for game creation and AI amendment compilation
+game_create_rate_limiter = InMemoryRateLimiter(max_requests=60, window_seconds=60.0)
+court_compile_rate_limiter = InMemoryRateLimiter(max_requests=30, window_seconds=60.0)
+
+def create_multiplayer_game_for_room(room: Room) -> str:
+    """Instantiate authoritative backend game state when host starts the room."""
+    settings = {
+        "board_size": 6,
+        "dice_type": "1d6",
+        "win_target": 21,
+        "mode": "live",
+        "max_rules": 12,
+        "amend_every": 1,
+    }
+    players = [{"id": p.player_id, "name": p.nickname} for p in room.players]
+    state = create_game(settings, players)
+    state["is_multiplayer"] = True
+    state["room_code"] = room.code
+    game_id = state["game_id"]
+    _store_game(game_id, state)
+    room.game_id = game_id
+    return game_id
+
+set_game_creator(create_multiplayer_game_for_room)
+
+def _authenticate_player_action(
+    state: dict,
+    acting_player_id: str,
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials],
+) -> None:
+    """Enforce authentication on multiplayer games and reject impersonation."""
+    if not state.get("is_multiplayer"):
+        return  # Local pass-and-play match
+
+    user = get_current_user(request, credentials)
+    if user.id != acting_player_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Forbidden: Authenticated as '{user.nickname}' ({user.id}), cannot act for player '{acting_player_id}'.",
+        )
 
 # Injectable RNG factory for deterministic tests
 _rng_factory = lambda: random.Random()
@@ -412,12 +529,19 @@ async def api_health():
 
 
 @app.post("/game/new", response_model=CreateGameResponse, status_code=status.HTTP_201_CREATED)
-async def create_new_game(request: CreateGameRequest):
+async def create_new_game(request: CreateGameRequest, http_request: Request):
     """
     Create a new game.
 
     For hybrid mode, selects a random rulebook compatible with the board size.
     """
+    client_ip = get_client_ip(http_request)
+    if not game_create_rate_limiter.is_allowed(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many game creation attempts. Please wait a moment."
+        )
+
     # Convert Pydantic models to dicts
     settings_dict = request.settings.model_dump()
     players_list = [p.model_dump() for p in request.players]
@@ -664,7 +788,12 @@ async def get_game_state(game_id: str):
 
 
 @app.post("/game/{game_id}/roll", response_model=ExecuteTurnResponse)
-async def execute_player_turn(game_id: str, request: ExecuteTurnRequest):
+async def execute_player_turn(
+    game_id: str,
+    request: ExecuteTurnRequest,
+    http_req: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+):
     """
     Execute the current player's turn.
 
@@ -683,6 +812,7 @@ async def execute_player_turn(game_id: str, request: ExecuteTurnRequest):
 
     state = games[game_id]
     _check_and_resolve_expiry(state)
+    _authenticate_player_action(state, request.player_id, http_req, credentials)
 
     # Check if game is finished
     if state["phase"] == "finished":
@@ -775,7 +905,12 @@ async def get_suggestions_endpoint(game_id: str, player_id: str):
 
 
 @app.post("/game/{game_id}/amend", response_model=AmendResponse)
-async def submit_amendment(game_id: str, request: AmendRequest):
+async def submit_amendment(
+    game_id: str,
+    request: AmendRequest,
+    http_req: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+):
     """
     Submit an amendment (either a predefined amendment_id or custom text).
 
@@ -791,6 +926,7 @@ async def submit_amendment(game_id: str, request: AmendRequest):
 
     state = games[game_id]
     _check_and_resolve_expiry(state)
+    _authenticate_player_action(state, request.player_id, http_req, credentials)
 
     # Validate exactly one of text or amendment_id is supplied
     has_text = bool(request.text and request.text.strip())
@@ -800,6 +936,15 @@ async def submit_amendment(game_id: str, request: AmendRequest):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Exactly one of 'text' or 'amendment_id' must be provided",
         )
+
+    # Rate limit custom text amendment compilation requests
+    if has_text:
+        client_ip = get_client_ip(http_req)
+        if not court_compile_rate_limiter.is_allowed(client_ip):
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many amendment compilation requests. Please wait a moment."
+            )
 
     # Validate player exists
     player_ids = [p["id"] for p in state["players"]]
@@ -964,7 +1109,12 @@ async def submit_amendment(game_id: str, request: AmendRequest):
 
 
 @app.post("/game/{game_id}/pass-amendment")
-async def pass_amendment(game_id: str, request: ExecuteTurnRequest):
+async def pass_amendment(
+    game_id: str,
+    request: ExecuteTurnRequest,
+    http_req: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+):
     """Pass a live-mode amendment opportunity and advance to the next player."""
     if game_id not in games:
         raise HTTPException(
@@ -974,6 +1124,7 @@ async def pass_amendment(game_id: str, request: ExecuteTurnRequest):
 
     state = games[game_id]
     _check_and_resolve_expiry(state)
+    _authenticate_player_action(state, request.player_id, http_req, credentials)
 
     player_ids = [p["id"] for p in state["players"]]
     if request.player_id not in player_ids:
@@ -1041,14 +1192,24 @@ async def get_rules_book_endpoint(game_id: str):
 
 @app.on_event("startup")
 async def startup_event():
-    """Startup event handler: logs provider mode and warms up model in background."""
+    """Startup event handler: validates security configuration, logs provider mode, and warms up model."""
+    # Production security validation: fails fast if JWT_SECRET or CORS misconfigured in production
+    validate_jwt_secret()
+    get_cors_configuration()
+
     # Task 6b: Log Court provider on startup
-    if CourtConfig.PROVIDER == "ollama":
+    primary = CourtConfig.PRIMARY_PROVIDER
+    fallback = CourtConfig.FALLBACK_PROVIDER
+    if primary == "ollama":
         print(f"Court provider: ollama (local, {CourtConfig.OLLAMA_MODEL})")
-    elif CourtConfig.PROVIDER == "gemini":
-        print("WARNING: Court provider: gemini (HOSTED) - sending game data to hosted service!")
+    elif primary == "gemini":
+        fb_str = f" -> {fallback} (fallback, {CourtConfig.GROQ_MODEL})" if fallback == "groq" else ""
+        print(f"WARNING: Court provider: gemini (HOSTED, {CourtConfig.GEMINI_MODEL}){fb_str} - sending game data to hosted service!")
+    elif primary == "groq":
+        fb_str = f" -> {fallback} (fallback)" if fallback else ""
+        print(f"Court provider: groq (hosted, {CourtConfig.GROQ_MODEL}){fb_str}")
     else:
-        print(f"Court provider: {CourtConfig.PROVIDER}")
+        print(f"Court provider: {primary}")
 
     # Task 4b: Warm the model with a tiny request in a background thread
     def _warmup():
@@ -1100,12 +1261,19 @@ async def court_health_endpoint():
 
 
 @app.post("/court/compile", response_model=CourtCompileResponse)
-async def court_compile_endpoint(request: CourtCompileRequest):
+async def court_compile_endpoint(request: CourtCompileRequest, http_request: Request):
     """
     Stateless endpoint to compile a natural language rule proposal into an engine rule.
     Does NOT require a game_id, does NOT mutate any game state, and does NOT consume
     amendment opportunities.
     """
+    client_ip = get_client_ip(http_request)
+    if not court_compile_rate_limiter.is_allowed(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many amendment compilation requests. Please wait a moment."
+        )
+
     settings_dict = (
         request.settings.model_dump()
         if request.settings

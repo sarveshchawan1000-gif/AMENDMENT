@@ -16,6 +16,14 @@ from backend.court.compiler import (
 
 # --- Test fixtures ---
 
+@pytest.fixture(autouse=True)
+def clear_cache_between_tests():
+    from backend.court.cache import rule_cache
+    rule_cache.clear()
+    yield
+    rule_cache.clear()
+
+
 @pytest.fixture
 def mock_state():
     """Sample game state for testing."""

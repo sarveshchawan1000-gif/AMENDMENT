@@ -15,14 +15,20 @@ from backend.court.providers.base import (
     LLMProvider,
     ProviderError,
     ProviderTimeoutError,
-    ProviderConnectionError
+    ProviderConnectionError,
+    ProviderModelNotFoundError,
+    ProviderRateLimitError,
+    ProviderAuthError,
+    ProviderPermissionError,
+    ProviderInvalidRequestError,
+    ProviderServerError,
 )
 
 
 class GeminiProvider(LLMProvider):
     """
     Provider for Google's Gemini API via REST.
-    Activated when COURT_PROVIDER=gemini is configured.
+    Activated when COURT_PRIMARY_PROVIDER=gemini or COURT_PROVIDER=gemini is configured.
     """
 
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
@@ -30,9 +36,9 @@ class GeminiProvider(LLMProvider):
     def __init__(
         self,
         api_key: str,
-        model: str,
+        model: str = "gemini-2.0-flash",
         timeout: int = 15,
-        temperature: float = 0.0
+        temperature: float = 0.0,
     ):
         super().__init__(model=model, timeout=timeout, temperature=temperature)
         self.api_key = api_key
@@ -44,12 +50,13 @@ class GeminiProvider(LLMProvider):
         self,
         prompt: str,
         system_prompt: Optional[str] = None,
-        json_schema: Optional[Dict[str, Any]] = None
+        json_schema: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Generate a response from Gemini using the Generative Language REST API.
+        Passes authentication securely via the x-goog-api-key header.
         """
-        url = f"{self.BASE_URL}/{self.model}:generateContent?key={self.api_key}"
+        url = f"{self.BASE_URL}/{self.model}:generateContent"
 
         payload: Dict[str, Any] = {
             "contents": [
@@ -59,7 +66,7 @@ class GeminiProvider(LLMProvider):
             ],
             "generationConfig": {
                 "temperature": self.temperature,
-            }
+            },
         }
 
         if system_prompt:
@@ -71,12 +78,17 @@ class GeminiProvider(LLMProvider):
         if json_schema is not None:
             payload["generationConfig"]["responseMimeType"] = "application/json"
 
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key,
+        }
+
         try:
             response = requests.post(
                 url,
                 json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=self.timeout
+                headers=headers,
+                timeout=self.timeout,
             )
         except requests.exceptions.Timeout as e:
             raise ProviderTimeoutError(f"Gemini API request timed out: {e}")
@@ -85,9 +97,47 @@ class GeminiProvider(LLMProvider):
         except Exception as e:
             raise ProviderError(f"Unexpected error connecting to Gemini API: {e}")
 
-        if response.status_code != 200:
+        raw_text = response.text or ""
+        scrubbed_text = raw_text.replace(self.api_key, "[REDACTED]")
+
+        # Error classification
+        if response.status_code == 429:
+            retry_header = response.headers.get("Retry-After") or response.headers.get("retry-after")
+            retry_sec = None
+            if retry_header and str(retry_header).isdigit():
+                retry_sec = int(retry_header)
+            is_daily = any(
+                phrase in scrubbed_text.lower()
+                for phrase in ("per day", "daily", "freetierperday", "quota exceeded", "resource_exhausted")
+            )
+            raise ProviderRateLimitError(
+                f"Gemini API rate limit exceeded (HTTP 429): {scrubbed_text}",
+                is_daily_quota=is_daily,
+                retry_after=retry_sec,
+            )
+        elif response.status_code == 401:
+            raise ProviderAuthError(
+                "Gemini API authentication failed (HTTP 401). Please verify GEMINI_API_KEY."
+            )
+        elif response.status_code == 403:
+            raise ProviderPermissionError(
+                f"Gemini API permission denied (HTTP 403): {scrubbed_text}"
+            )
+        elif response.status_code == 400:
+            raise ProviderInvalidRequestError(
+                f"Gemini API bad request (HTTP 400): {scrubbed_text}"
+            )
+        elif response.status_code == 404:
+            raise ProviderModelNotFoundError(
+                f"Gemini model '{self.model}' not found (HTTP 404): {scrubbed_text}"
+            )
+        elif response.status_code >= 500:
+            raise ProviderServerError(
+                f"Gemini API server error (HTTP {response.status_code}): {scrubbed_text}"
+            )
+        elif response.status_code != 200:
             raise ProviderError(
-                f"Gemini API returned status {response.status_code}: {response.text}"
+                f"Gemini API returned status {response.status_code}: {scrubbed_text}"
             )
 
         try:
@@ -115,4 +165,8 @@ class GeminiProvider(LLMProvider):
         if not self.api_key:
             return False, False, "GEMINI_API_KEY environment variable is missing"
         return True, True, "Gemini provider is configured and ready"
+
+    def __repr__(self) -> str:
+        # Never expose or log the api_key
+        return f"GeminiProvider(model={self.model}, api_key=***, timeout={self.timeout}s)"
 
